@@ -4,7 +4,7 @@
    Seluruh logika & gaya spesifik tab Toko ke depannya diletakkan di folder ini.
    ========================================================================== */
 
-import { renderModulePreview } from '../../core/preview.js';
+import { renderModulePreview } from '../../components/preview.js';
 
 /**
  * Merender tab Toko (pratinjau modul koleksi aset).

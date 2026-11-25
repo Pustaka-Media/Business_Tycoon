@@ -2,9 +2,9 @@
    BUSINESS TYCOON TAP - TAB USAHA (Dashboard & Pemilih Kategori Bisnis)
    ========================================================================== */
 
-import { hasDOM, getEl } from '../../core/dom.js';
+import { hasDOM, getEl } from '../../utils/dom.js';
 import { state } from '../../core/state.js';
-import { formatIntegerID, formatCurrencyValue } from '../../core/format.js';
+import { formatIntegerID, formatCurrencyValue } from '../../utils/format.js';
 
 const businessScreen = getEl('business-screen');
 const businessStartBtn = getEl('business-start-btn');

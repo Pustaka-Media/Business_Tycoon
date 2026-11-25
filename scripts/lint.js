@@ -32,7 +32,7 @@ if (/\b(Danamon|JCB)\b/i.test(html) || html.includes('05/26')) {
 if (!html.includes('rel="manifest"')) {
   throw new Error('Tautan manifest PWA belum ada di public/index.html.');
 }
-if (!html.includes('assets/core/base.css') || !html.includes('assets/core/main.js')) {
+if (!html.includes('assets/styles/base.css') || !html.includes('assets/core/main.js')) {
   throw new Error('Jalur aset CSS inti/JS terstruktur belum terpasang di public/index.html.');
 }
 if (html.includes('assets/js/game.js') || html.includes('assets/css/style.css')) {
@@ -62,9 +62,9 @@ usedSymbols.forEach(function (symId) {
 
 // 5. Pastikan aksesibilitas dasar tersedia pada gabungan berkas CSS (dipecah per folder)
 const cssFiles = [
-  'public/assets/core/base.css',
-  'public/assets/core/preview.css',
-  'public/assets/core/responsive.css',
+  'public/assets/styles/base.css',
+  'public/assets/styles/preview.css',
+  'public/assets/styles/responsive.css',
   'public/assets/tabs/earnings/earnings.css',
   'public/assets/tabs/investing/investing.css',
   'public/assets/tabs/business/business.css',
@@ -83,13 +83,13 @@ if (!allCss.includes(':focus-visible')) {
 const jsFiles = [
   'public/assets/core/main.js',
   'scripts/build.js',
-  'public/assets/core/dom.js',
-  'public/assets/core/format.js',
+  'public/assets/utils/dom.js',
+  'public/assets/utils/format.js',
   'public/assets/core/state.js',
-  'public/assets/core/feedback.js',
-  'public/assets/core/badges.js',
-  'public/assets/core/milestones.js',
-  'public/assets/core/preview.js',
+  'public/assets/components/feedback.js',
+  'public/assets/components/badges.js',
+  'public/assets/components/milestones.js',
+  'public/assets/components/preview.js',
   'public/assets/tabs/earnings/earnings.js',
   'public/assets/tabs/investing/investing.js',
   'public/assets/tabs/business/business.js',

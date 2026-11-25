@@ -7,8 +7,8 @@
    ========================================================================== */
 
 import { CONFIG } from './config.js';
-import { ASSETS } from './assets.js';
-import { root } from './dom.js';
+import { ASSETS } from '../data/assets.js';
+import { root } from '../utils/dom.js';
 
 export const state = {
   version: CONFIG.SAVE_SCHEMA_VERSION,

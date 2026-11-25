@@ -5,8 +5,8 @@
    ========================================================================== */
 
 import { CONFIG } from './config.js';
-import { ASSETS } from './assets.js';
-import { hasDOM, root, getEl } from './dom.js';
+import { ASSETS } from '../data/assets.js';
+import { hasDOM, root, getEl } from '../utils/dom.js';
 import {
   state,
   runtime,
@@ -16,9 +16,9 @@ import {
   flushSaveState,
   saveState
 } from './state.js';
-import { setTabBadge } from './badges.js';
-import { checkMilestones } from './milestones.js';
-import { hideModulePreview, renderModulePreview, bindPreviewEvents } from './preview.js';
+import { setTabBadge } from '../components/badges.js';
+import { checkMilestones } from '../components/milestones.js';
+import { hideModulePreview, renderModulePreview, bindPreviewEvents } from '../components/preview.js';
 import {
   renderBankCardIdentity,
   renderStats,

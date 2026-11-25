@@ -2,26 +2,26 @@
    BUSINESS TYCOON TAP - SERVICE WORKER (OFFLINE CACHE-FIRST)
    ========================================================================== */
 
-const CACHE_NAME = 'business-tycoon-tap-v29';
+const CACHE_NAME = 'business-tycoon-tap-v30';
 const CORE_ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
-  './assets/core/base.css',
-  './assets/core/preview.css',
-  './assets/core/responsive.css',
-  './assets/core/dom.js',
+  './assets/styles/base.css',
+  './assets/styles/preview.css',
+  './assets/styles/responsive.css',
+  './assets/utils/dom.js',
+  './assets/utils/format.js',
+  './assets/data/assets.js',
   './assets/core/config.js',
-  './assets/core/assets.js',
-  './assets/core/format.js',
   './assets/core/state.js',
-  './assets/core/feedback.js',
-  './assets/core/badges.js',
-  './assets/core/milestones.js',
-  './assets/core/preview.js',
   './assets/core/main.js',
+  './assets/components/feedback.js',
+  './assets/components/badges.js',
+  './assets/components/milestones.js',
+  './assets/components/preview.js',
   './assets/tabs/earnings/earnings.css',
   './assets/tabs/earnings/earnings.js',
   './assets/tabs/investing/investing.css',

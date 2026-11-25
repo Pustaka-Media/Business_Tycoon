@@ -5,7 +5,7 @@ Simulasi bisnis ketuk layar *mobile-first* — **HTML5 + CSS3 + Vanilla JavaScri
 - **Produksi:** https://business-tycoon-tap.vercel.app
 - **Lisensi:** [MIT](./LICENSE)
 
-> **💱 Mata uang:** mata uang yang berlaku di game ini saat ini adalah **USD** (simbol `$`). Semua tampilan nominal (saldo, pendapatan, biaya upgrade, harga aset) dirender dengan awalan `$`. Helper `formatRupiahFull`/`formatRupiahCompact` di `core/format.js` masih tersedia tetapi **tidak dipakai untuk tampilan utama** — jangan menampilkan `Rp` pada fitur atau label baru. Beberapa teks lama di tab Usaha masih menampilkan `Rp189 T` (placeholder, akan diseragamkan ke USD kemudian). Keputusan memakai USD ini bersifat sementara sampai ada keputusan resmi.
+> **💱 Mata uang:** mata uang yang berlaku di game ini saat ini adalah **USD** (simbol `$`). Semua tampilan nominal (saldo, pendapatan, biaya upgrade, harga aset) dirender dengan awalan `$`. Helper `formatRupiahFull`/`formatRupiahCompact` di `utils/format.js` masih tersedia tetapi **tidak dipakai untuk tampilan utama** — jangan menampilkan `Rp` pada fitur atau label baru. Beberapa teks lama di tab Usaha masih menampilkan `Rp189 T` (placeholder, akan diseragamkan ke USD kemudian). Keputusan memakai USD ini bersifat sementara sampai ada keputusan resmi.
 
 > **🗣️ Bahasa:** game ini **wajib berbahasa Indonesia penuh** — **tidak boleh ada satu kata Bahasa Inggris pun** yang tampil ke pemain. Berlaku untuk semua teks: UI, tombol, label, badge, judul, toast, notifikasi, pesan error, `aria-label`, `title`, `alt`, placeholder, dokumen (README, manifest). Detail & daftar pelanggaran yang masih ada: lihat Bagian 5A. Identifier teknis (nama variabel/fungsi/kelas CSS) bukan bahasa game dan tidak dihitung.
 
@@ -26,19 +26,32 @@ npm test        # Smoke test (Node test runner, ESM)
 
 ```text
 ├── .github/workflows/static.yml   # CI (check + test) & rilis GitHub Pages
+├── firebase-applet-config.json    # Konfigurasi proyek Firebase (Auth & Firestore)
+├── firebase-blueprint.json        # Skema entitas & koleksi Firestore
+├── firestore.rules                # Aturan keamanan Firestore
 ├── public/
 │   ├── assets/
-│   │   ├── core/                  # Fondasi bersama SEMUA tab
+│   │   ├── core/                  # Fondasi inti aplikasi (entry, config, state)
 │   │   │   ├── main.js            #   Entry point (init, routing tab, loop pasif & harga)
 │   │   │   ├── config.js          #   CONFIG terpusat (SATU-SATUNYA tempat konstanta numerik)
-│   │   │   ├── assets.js          #   Data 33 aset investasi
-│   │   │   ├── state.js           #   State tunggal + mesin simpan (Save Schema v2)
-│   │   │   ├── dom.js / format.js #   Util DOM & format angka (Rupiah, compact, %, dll.)
-│   │   │   ├── feedback.js / badges.js / milestones.js / preview.js
-│   │   │   └── base.css / preview.css / responsive.css
+│   │   │   └── state.js           #   State tunggal + mesin simpan (Save Schema v2)
+│   │   ├── data/                  # Katalog data statis game
+│   │   │   └── assets.js          #   Data 33 aset investasi
+│   │   ├── utils/                 # Fungsi utilitas murni & DOM helper
+│   │   │   ├── dom.js             #   Pembantu akses DOM
+│   │   │   └── format.js          #   Format angka, USD, Rupiah, %, & waktu
+│   │   ├── components/            # Komponen UI bersama antar tab
+│   │   │   ├── badges.js          #   Lencana notifikasi bottom navigation
+│   │   │   ├── feedback.js        #   Toast, animasi ketuk, audio WebAudio, getar haptik
+│   │   │   ├── milestones.js      #   Sistem & notifikasi pencapaian
+│   │   │   └── preview.js         #   Pengendali layar pratinjau modul
+│   │   ├── styles/                # Gaya CSS global lintas tab
+│   │   │   ├── base.css           #   Variabel tema, layout utama, nav, modal, toast
+│   │   │   ├── preview.css        #   Gaya layar pratinjau modul
+│   │   │   └── responsive.css     #   Penyesuaian tata letak responsif
 │   │   ├── tabs/                  # SATU FOLDER PER TAB — semua berkas tab tinggal di sini
 │   │   │   ├── earnings/          #   Pendapatan: earnings.html + .css + .js
-│   │   │   ├── investing/         #   Investasi: investing.html (3 layar) + .css + .js
+│   │   │   ├── investing/         #   Investasi: investing.html + .css + .js
 │   │   │   ├── business/          #   Usaha: business.html + .css + .js
 │   │   │   ├── items/             #   Item: items.js (memakai preview-screen bersama)
 │   │   │   └── profile/           #   Profil: profile.html + .css + .js
@@ -49,6 +62,7 @@ npm test        # Smoke test (Node test runner, ESM)
 │   └── sw.js                      # Service Worker cache-first
 ├── scripts/build.js               # Perakit index.html
 ├── scripts/lint.js                # Pemeriksa statis
+├── server.js                      # Peladen Express statis
 └── tests/smoke.test.js            # Smoke test otomatis
 ```
 
@@ -82,7 +96,7 @@ Ikuti langkah ini berurutan, tanpa penyimpangan:
 
 Hanya dalam tiga kasus ini, dan tetap dicatat di commit:
 
-- **Fondasi bersama** (`public/assets/core/`) — misal ada CONFIG baru atau format angka yang dipakai banyak tab.
+- **Fondasi & komponen bersama** (`public/assets/core/`, `data/`, `utils/`, `components/`, `styles/`) — misal ada CONFIG baru, komponen UI bersama, atau utilitas lintas tab.
 - **Markup shell bersama** (`public/index.template.html`: bottom navigation, SVG sprite, preview-screen, roadmap modal, milestone toast) — hanya untuk hal lintas tab; lalu `npm run build`.
 - **Service worker** (`public/sw.js`) — bila daftar precache berubah; naikkan `CACHE_NAME`.
 
@@ -98,9 +112,9 @@ Hanya dalam tiga kasus ini, dan tetap dicatat di commit:
 
 ## 5. Aturan Kode
 
-- **Konstanta:** semua konstanta numerik tinggal di `CONFIG` (`core/config.js`); aset investasi di `core/assets.js`.
+- **Konstanta:** semua konstanta numerik tinggal di `CONFIG` (`core/config.js`); aset investasi di `data/assets.js`.
 - **Simpan:** tulis lewat mesin simpan di `core/state.js` (dual throttle 500 ms / 5 dtk, *flush* saat tab disembunyikan). Jangan menulis `localStorage` langsung.
-- **Format angka:** gunakan helper di `core/format.js` (mis. `formatCurrencyValue`, `formatCompact`, `formatSignedPercent`) — jangan format manual di modul tab. Mata uang tampilan: **USD** (lihat catatan di bagian atas).
+- **Format angka:** gunakan helper di `utils/format.js` (mis. `formatCurrencyValue`, `formatCompact`, `formatSignedPercent`) — jangan format manual di modul tab. Mata uang tampilan: **USD** (lihat catatan di bagian atas).
 - **Aksesibilitas:** hormati `prefers-reduced-motion`, sediakan `:focus-visible`, beri `aria-label` pada kontrol tanpa teks, `aria-hidden` untuk ikon dekoratif.
 - **Bahasa UI:** Bahasa Indonesia penuh — lihat aturan nol toleransi di **Bagian 5A**.
 - **Gambar PNG/JPG:** hanya untuk foto/ilustrasi; kompres dulu, beri `width`/`height` + `loading="lazy"`, `alt` yang bermakna. Ikon antarmuka tetap SVG.

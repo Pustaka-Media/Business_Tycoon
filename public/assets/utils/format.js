@@ -2,7 +2,7 @@
    BUSINESS TYCOON TAP - FORMAT ANGKA & MATA UANG (murni, tanpa efek samping)
    ========================================================================== */
 
-import { CONFIG } from './config.js';
+import { CONFIG } from '../core/config.js';
 
 export function formatFullCurrencyValue(amount) {
   const safeNumber = Number.isFinite(amount) && amount >= 0 ? amount : 0;

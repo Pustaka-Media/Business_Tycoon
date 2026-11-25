@@ -3,16 +3,16 @@
    ========================================================================== */
 
 import { CONFIG } from '../../core/config.js';
-import { hasDOM, getEl } from '../../core/dom.js';
+import { hasDOM, getEl } from '../../utils/dom.js';
 import { state, runtime, getStorage, writeSaveImmediate } from '../../core/state.js';
 import {
   formatCurrencyValue,
   formatFullCurrencyValue,
   formatIntegerID,
   formatDateShort
-} from '../../core/format.js';
-import { playCoinBlip, triggerHaptic } from '../../core/feedback.js';
-import { setTabBadge } from '../../core/badges.js';
+} from '../../utils/format.js';
+import { playCoinBlip, triggerHaptic } from '../../components/feedback.js';
+import { setTabBadge } from '../../components/badges.js';
 import {
   renderBankCardIdentity,
   renderStats,

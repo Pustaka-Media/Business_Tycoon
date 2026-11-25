@@ -1,0 +1,83 @@
+{
+  "entities": {
+    "UserPrivateProfile": {
+      "title": "UserPrivateProfile",
+      "description": "Profil privat akun pemain Business Tycoon Tap",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 320
+        },
+        "displayName": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email", "createdAt", "updatedAt"]
+    },
+    "PlayerSave": {
+      "title": "PlayerSave",
+      "description": "Cadangan cloud Save Schema v2 untuk progres pemain",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "version": {
+          "type": "number"
+        },
+        "balance": {
+          "type": "number"
+        },
+        "perClick": {
+          "type": "number"
+        },
+        "perSecond": {
+          "type": "number"
+        },
+        "totalTaps": {
+          "type": "integer"
+        },
+        "totalEarned": {
+          "type": "number"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["userId", "version", "balance", "perClick", "perSecond", "totalTaps", "totalEarned", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/private/{docId}": {
+      "schema": {
+        "$ref": "#/entities/UserPrivateProfile"
+      },
+      "description": "Profil privat pemain terisolasi per UID"
+    },
+    "/playerSaves/{userId}": {
+      "schema": {
+        "$ref": "#/entities/PlayerSave"
+      },
+      "description": "Dokumen cloud save milik pemain per UID"
+    }
+  }
+}

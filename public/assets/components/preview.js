@@ -2,10 +2,10 @@
    BUSINESS TYCOON TAP - LAYAR PRATINJAU MODUL (bersama untuk Toko & host Profil)
    ========================================================================== */
 
-import { CONFIG } from './config.js';
-import { hasDOM, getEl } from './dom.js';
-import { state, runtime } from './state.js';
-import { formatCurrencyValue } from './format.js';
+import { CONFIG } from '../core/config.js';
+import { hasDOM, getEl } from '../utils/dom.js';
+import { state, runtime } from '../core/state.js';
+import { formatCurrencyValue } from '../utils/format.js';
 
 const previewScreen = getEl('preview-screen');
 const previewTitle = getEl('preview-title');

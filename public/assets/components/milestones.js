@@ -2,8 +2,8 @@
  BUSINESS TYCOON TAP - PENCAPAIAN (MILESTONE) & LENCANA PROFIL
  ========================================================================== */
 
-import { CONFIG } from './config.js';
-import { state, runtime, writeSaveImmediate } from './state.js';
+import { CONFIG } from '../core/config.js';
+import { state, runtime, writeSaveImmediate } from '../core/state.js';
 import { showMilestoneToast } from './feedback.js';
 import { setTabBadge } from './badges.js';
 

@@ -2,10 +2,10 @@
  BUSINESS TYCOON TAP - UMPAN BALIK: GETAR, AUDIO, TOAST & PENGUMUMAN LAYAR
  ========================================================================== */
 
-import { CONFIG } from './config.js';
-import { root, getEl } from './dom.js';
-import { state } from './state.js';
-import { formatCurrencyValue } from './format.js';
+import { CONFIG } from '../core/config.js';
+import { root, getEl } from '../utils/dom.js';
+import { state } from '../core/state.js';
+import { formatCurrencyValue } from '../utils/format.js';
 
 const milestoneToast = getEl('milestone-toast');
 const milestoneToastTitle = getEl('milestone-toast-title');

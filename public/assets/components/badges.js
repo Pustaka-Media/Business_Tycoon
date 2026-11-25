@@ -2,7 +2,7 @@
    BUSINESS TYCOON TAP - LENCANA (BADGE) NAVIGASI BAWAH
    ========================================================================== */
 
-import { hasDOM } from './dom.js';
+import { hasDOM } from '../utils/dom.js';
 
 const navBadges = {
   Earnings: hasDOM ? document.querySelector('[data-nav-badge="Earnings"]') : null,

@@ -41,8 +41,8 @@ globalThis.localStorage = mockStorage;
 const [configMod, assetsMod, formatMod, stateMod, earningsMod, investingMod, profileMod, mainMod] =
   await Promise.all([
     import('../public/assets/core/config.js'),
-    import('../public/assets/core/assets.js'),
-    import('../public/assets/core/format.js'),
+    import('../public/assets/data/assets.js'),
+    import('../public/assets/utils/format.js'),
     import('../public/assets/core/state.js'),
     import('../public/assets/tabs/earnings/earnings.js'),
     import('../public/assets/tabs/investing/investing.js'),
@@ -88,7 +88,7 @@ test('formatCurrencyValue, formatRupiah*, dan formatSignedPercent anti-NaN/Infin
 test('Executive Black-Gold Precious Card: struktur SVG, branding fiktif, dan bebas merek nyata', function () {
   const rootDir = path.resolve(__dirname, '..');
   const html = fs.readFileSync(path.join(rootDir, 'public/index.html'), 'utf8');
-  const baseCss = fs.readFileSync(path.join(rootDir, 'public/assets/core/base.css'), 'utf8');
+  const baseCss = fs.readFileSync(path.join(rootDir, 'public/assets/styles/base.css'), 'utf8');
   const earningsCss = fs.readFileSync(path.join(rootDir, 'public/assets/tabs/earnings/earnings.css'), 'utf8');
   const css = baseCss + '\n' + earningsCss;
 

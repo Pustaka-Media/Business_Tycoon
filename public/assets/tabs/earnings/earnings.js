@@ -3,21 +3,21 @@
    ========================================================================== */
 
 import { CONFIG } from '../../core/config.js';
-import { hasDOM, root, getEl } from '../../core/dom.js';
+import { hasDOM, root, getEl } from '../../utils/dom.js';
 import { state, runtime, saveState, writeSaveImmediate } from '../../core/state.js';
 import {
   formatCurrencyValue,
   formatFullCurrencyValue,
   formatRupiahCompact
-} from '../../core/format.js';
+} from '../../utils/format.js';
 import {
   triggerHaptic,
   playCoinBlip,
   prefersReducedMotion,
   announceScreenReader
-} from '../../core/feedback.js';
-import { checkMilestones } from '../../core/milestones.js';
-import { setTabBadge } from '../../core/badges.js';
+} from '../../components/feedback.js';
+import { checkMilestones } from '../../components/milestones.js';
+import { setTabBadge } from '../../components/badges.js';
 
 // Referensi elemen DOM (null di lingkungan pengujian Node)
 const bankCard = getEl('bank-card');

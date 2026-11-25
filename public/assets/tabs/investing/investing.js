@@ -3,8 +3,8 @@
    ========================================================================== */
 
 import { CONFIG } from '../../core/config.js';
-import { ASSETS } from '../../core/assets.js';
-import { hasDOM, root, getEl } from '../../core/dom.js';
+import { ASSETS } from '../../data/assets.js';
+import { hasDOM, root, getEl } from '../../utils/dom.js';
 import {
   state,
   runtime,
@@ -22,9 +22,9 @@ import {
   formatSignedPercentEn,
   formatIntegerID,
   formatTimeHHMM
-} from '../../core/format.js';
-import { triggerHaptic, playCoinBlip, showToast } from '../../core/feedback.js';
-import { checkMilestones } from '../../core/milestones.js';
+} from '../../utils/format.js';
+import { triggerHaptic, playCoinBlip, showToast } from '../../components/feedback.js';
+import { checkMilestones } from '../../components/milestones.js';
 import { renderStats, renderUpgrades } from '../earnings/earnings.js';
 
 // Referensi elemen DOM (null di lingkungan pengujian Node)

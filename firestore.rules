@@ -1,0 +1,86 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net: default deny semua akses yang tidak diizinkan secara eksplisit
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId && request.auth.token.email_verified == true;
+    }
+
+    function isValidUserPrivate(data, userId) {
+      return data.keys().hasAll(['uid', 'email', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'email', 'displayName', 'createdAt', 'updatedAt'])
+        && data.uid is string && data.uid == userId && isValidId(data.uid)
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 320
+        && (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 100))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidPlayerSave(data, userId) {
+      return data.keys().hasAll(['userId', 'version', 'balance', 'perClick', 'perSecond', 'totalTaps', 'totalEarned', 'updatedAt'])
+        && data.keys().hasOnly(['userId', 'version', 'balance', 'perClick', 'perSecond', 'totalTaps', 'totalEarned', 'updatedAt'])
+        && data.userId is string && data.userId == userId && isValidId(data.userId)
+        && data.version is number && data.version == 2
+        && data.balance is number && data.balance >= 0
+        && data.perClick is number && data.perClick >= 0
+        && data.perSecond is number && data.perSecond >= 0
+        && data.totalTaps is int && data.totalTaps >= 0
+        && data.totalEarned is number && data.totalEarned >= 0
+        && data.updatedAt is timestamp;
+    }
+
+    match /users/{userId}/private/{docId} {
+      allow get: if isValidId(userId) && isValidId(docId) && isVerifiedOwner(userId);
+      allow list: if false;
+      allow create: if isValidId(userId) && docId == 'profile'
+        && isVerifiedOwner(userId)
+        && isValidUserPrivate(incoming(), userId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(userId) && docId == 'profile'
+        && isVerifiedOwner(userId)
+        && isValidUserPrivate(incoming(), userId)
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['email', 'displayName', 'updatedAt']);
+      allow delete: if isValidId(userId) && docId == 'profile' && isVerifiedOwner(userId);
+    }
+
+    match /playerSaves/{userId} {
+      allow get: if isValidId(userId) && isVerifiedOwner(userId);
+      allow list: if false;
+      allow create: if isValidId(userId)
+        && isVerifiedOwner(userId)
+        && isValidPlayerSave(incoming(), userId)
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(userId)
+        && isVerifiedOwner(userId)
+        && isValidPlayerSave(incoming(), userId)
+        && incoming().userId == existing().userId
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['version', 'balance', 'perClick', 'perSecond', 'totalTaps', 'totalEarned', 'updatedAt']);
+      allow delete: if isValidId(userId) && isVerifiedOwner(userId);
+    }
+  }
+}
