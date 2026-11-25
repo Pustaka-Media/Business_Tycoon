@@ -35,6 +35,7 @@ import {
   runPriceTick,
   renderInvestingScreen,
   renderAssetDetailScreen,
+  resetInvestingNavigation,
   bindInvestingEvents
 } from '../tabs/investing/investing.js';
 import { renderBusinessCompanies, bindBusinessEvents } from '../tabs/business/business.js';
@@ -44,7 +45,6 @@ import { renderProfileStats, bindProfileEvents } from '../tabs/profile/profile.j
 const earningsScreen = getEl('earnings-screen');
 const investingScreen = getEl('investing-screen');
 const assetDetailScreen = getEl('asset-detail-screen');
-const portfolioScreen = getEl('portfolio-screen');
 const businessScreen = getEl('business-screen');
 const businessCategoryScreen = getEl('business-category-screen');
 const navTabs = hasDOM ? Array.from(document.querySelectorAll('.nav-tab')) : [];
@@ -263,13 +263,10 @@ export function switchTab(tabName) {
     investingScreen.hidden = true;
     investingScreen.classList.remove('screen--active');
   }
+  resetInvestingNavigation();
   if (assetDetailScreen) {
     assetDetailScreen.hidden = true;
     assetDetailScreen.classList.remove('screen--active');
-  }
-  if (portfolioScreen) {
-    portfolioScreen.hidden = true;
-    portfolioScreen.classList.remove('screen--active');
   }
 
   if (tabName === 'Earnings') {

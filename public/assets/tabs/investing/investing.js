@@ -29,35 +29,33 @@ import { renderStats, renderUpgrades } from '../earnings/earnings.js';
 
 // Referensi elemen DOM (null di lingkungan pengujian Node)
 const investingScreen = getEl('investing-screen');
+const investingCategoryScreen = getEl('investing-category-screen');
 const assetDetailScreen = getEl('asset-detail-screen');
-const portfolioScreen = getEl('portfolio-screen');
-const heroPortfolioBtn = getEl('hero-portfolio');
 const heroTotalValue = getEl('hero-total-value');
-const heroTotalPnl = getEl('hero-total-pnl');
 const heroHourlyYield = getEl('hero-hourly-yield');
-const heroIdleCash = getEl('hero-idle-cash');
-const heroOpenPositions = getEl('hero-open-positions');
-const allocTotal = getEl('alloc-total');
-const allocTopName = getEl('alloc-top-name');
-const allocTopShare = getEl('alloc-top-share');
-const allocClasses = getEl('alloc-classes');
 const allocCenterTotal = getEl('alloc-center-total');
 const donutSegmentsGroup = getEl('donut-segments');
-const allocBreakdown = getEl('alloc-breakdown');
-const allocEmpty = getEl('alloc-empty');
+const categoryBackBtn = getEl('category-back-btn');
+const categoryScreenTitle = getEl('category-screen-title');
+const categoryScreenSub = getEl('category-screen-sub');
+const categoryWalletBalance = getEl('category-wallet-balance');
+const categoryCards = hasDOM ? Array.from(document.querySelectorAll('[data-invest-category]')) : [];
+const categoryShelves = hasDOM ? Array.from(document.querySelectorAll('[data-shelf]')) : [];
+const catCardSubSaham = getEl('cat-card-sub-Saham');
+const catCardSubKripto = getEl('cat-card-sub-Kripto');
+const catCardSubForex = getEl('cat-card-sub-Forex');
+const catCardTotalSaham = getEl('cat-card-total-Saham');
+const catCardTotalKripto = getEl('cat-card-total-Kripto');
+const catCardTotalForex = getEl('cat-card-total-Forex');
+const catCardShareSaham = getEl('cat-card-share-Saham');
+const catCardShareKripto = getEl('cat-card-share-Kripto');
+const catCardShareForex = getEl('cat-card-share-Forex');
 const shelfTotalSaham = getEl('shelf-total-Saham');
-const shelfTotalProperti = getEl('shelf-total-Properti');
 const shelfTotalKripto = getEl('shelf-total-Kripto');
 const shelfTotalForex = getEl('shelf-total-Forex');
 const shelfTrackSaham = getEl('shelf-track-Saham');
-const shelfTrackProperti = getEl('shelf-track-Properti');
 const shelfTrackKripto = getEl('shelf-track-Kripto');
 const shelfTrackForex = getEl('shelf-track-Forex');
-const portfolioBackBtn = getEl('portfolio-back-btn');
-const portfolioTotalValue = getEl('portfolio-total-value');
-const portfolioTotalPnl = getEl('portfolio-total-pnl');
-const portfolioHoldingsCount = getEl('portfolio-holdings-count');
-const portfolioHoldingsList = getEl('portfolio-holdings-list');
 const assetDetailBackBtn = getEl('asset-detail-back-btn');
 const detailAssetName = getEl('detail-asset-name');
 const detailAssetCategory = getEl('detail-asset-category');
@@ -239,86 +237,6 @@ export function getCategorySummary(category) {
 }
 
 /**
- * Membuka layar portofolio yang berisi seluruh aset milik pemain.
- */
-export function openPortfolio() {
-  if (!investingScreen || !portfolioScreen) return;
-  investingScreen.hidden = true;
-  investingScreen.classList.remove('screen--active');
-  portfolioScreen.hidden = false;
-  portfolioScreen.classList.add('screen--active');
-  renderPortfolio();
-}
-
-/**
- * Menampilkan ringkasan nilai dan daftar aset yang benar-benar dimiliki pemain.
- */
-export function renderPortfolio() {
-  if (!portfolioHoldingsList) return;
-  const holdings = [];
-  let totalValue = 0;
-  let totalCost = 0;
-
-  ASSETS.forEach(function (asset) {
-    const holding = state.holdings[asset.id];
-    const units = holding && Number.isFinite(Number(holding.units)) ? Number(holding.units) : 0;
-    if (units <= 0) return;
-    const avgEntry = holding && Number.isFinite(Number(holding.avgEntry)) ? Number(holding.avgEntry) : 0;
-    const marketPrice = getCurrentAssetPrice(asset.id);
-    const value = units * marketPrice;
-    const cost = units * avgEntry;
-    totalValue += value;
-    totalCost += cost;
-    holdings.push({ asset: asset, units: units, value: value, pnl: value - cost });
-  });
-
-  const pnl = totalValue - totalCost;
-  const pnlPct = totalCost > 0 ? (pnl / totalCost) * 100 : 0;
-  if (portfolioTotalValue) portfolioTotalValue.textContent = formatRupiahCompact(totalValue);
-  if (portfolioTotalPnl) {
-    portfolioTotalPnl.textContent = (pnl > 0 ? '+' : '') + formatRupiahCompact(pnl) + ' (' + formatSignedPercent(pnlPct) + ')';
-    portfolioTotalPnl.classList.toggle('pnl--positive', pnl >= 0);
-    portfolioTotalPnl.classList.toggle('pnl--negative', pnl < 0);
-  }
-  if (portfolioHoldingsCount) portfolioHoldingsCount.textContent = holdings.length + ' aset';
-  portfolioHoldingsList.innerHTML = '';
-
-  if (holdings.length === 0) {
-    const empty = document.createElement('div');
-    empty.className = 'portfolio-empty';
-    empty.textContent = 'Belum ada saham atau aset yang dimiliki. Beli aset dari daftar Investasi untuk mulai membangun portofolio.';
-    portfolioHoldingsList.appendChild(empty);
-    return;
-  }
-
-  holdings.forEach(function (item) {
-    const card = document.createElement('article');
-    card.className = 'portfolio-holding-card';
-    const main = document.createElement('div');
-    main.className = 'portfolio-holding-card__main';
-    const name = document.createElement('strong');
-    name.className = 'portfolio-holding-card__name';
-    name.textContent = item.asset.name;
-    const meta = document.createElement('span');
-    meta.className = 'portfolio-holding-card__meta';
-    meta.textContent = item.asset.category + ' · ' + formatIntegerID(item.units) + ' ' + item.asset.unitLabel;
-    main.appendChild(name);
-    main.appendChild(meta);
-    const value = document.createElement('div');
-    value.className = 'portfolio-holding-card__value';
-    const market = document.createElement('strong');
-    market.textContent = formatRupiahCompact(item.value);
-    const profit = document.createElement('span');
-    profit.className = item.pnl >= 0 ? 'pnl--positive' : 'pnl--negative';
-    profit.textContent = (item.pnl > 0 ? '+' : '') + formatRupiahCompact(item.pnl);
-    value.appendChild(market);
-    value.appendChild(profit);
-    card.appendChild(main);
-    card.appendChild(value);
-    portfolioHoldingsList.appendChild(card);
-  });
-}
-/**
  * Membangun sparkline mini (SVG polyline + area fill) dari riwayat harga aset.
  * Mengembalikan null bila data belum cukup; seluruh angka dihitung saat runtime.
  */
@@ -365,25 +283,39 @@ function buildSparklineMarkup(assetId, isUp) {
   );
 }
 
-const INVEST_CATEGORIES = ['Saham', 'Properti', 'Kripto', 'Forex'];
+const INVEST_CATEGORIES = ['Saham', 'Kripto', 'Forex'];
 const CATEGORY_META = {
-  Saham: { subtitle: 'Equities', color: '#2563EB' },
-  Properti: { subtitle: 'Real Estate', color: '#059669' },
-  Kripto: { subtitle: 'Digital Assets', color: '#EA580C' },
-  Forex: { subtitle: 'Currency', color: '#7C3AED' }
+  Saham: { subtitle: 'Ekuitas', color: '#2563EB' },
+  Kripto: { subtitle: 'Aset Digital', color: '#EA580C' },
+  Forex: { subtitle: 'Mata Uang', color: '#7C3AED' }
 };
 const SHELF_TRACKS = {
   Saham: shelfTrackSaham,
-  Properti: shelfTrackProperti,
   Kripto: shelfTrackKripto,
   Forex: shelfTrackForex
 };
 const SHELF_TOTALS = {
   Saham: shelfTotalSaham,
-  Properti: shelfTotalProperti,
   Kripto: shelfTotalKripto,
   Forex: shelfTotalForex
 };
+const CAT_CARD_SUBS = {
+  Saham: catCardSubSaham,
+  Kripto: catCardSubKripto,
+  Forex: catCardSubForex
+};
+const CAT_CARD_TOTALS = {
+  Saham: catCardTotalSaham,
+  Kripto: catCardTotalKripto,
+  Forex: catCardTotalForex
+};
+const CAT_CARD_SHARES = {
+  Saham: catCardShareSaham,
+  Kripto: catCardShareKripto,
+  Forex: catCardShareForex
+};
+
+let activeCategoryScreen = null;
 
 /**
  * Menghitung ringkasan portofolio lintas 4 kelas aset (nilai, P&L, alokasi,
@@ -453,7 +385,7 @@ let donutBuilt = false;
 const donutSegmentEls = [];
 
 /**
- * Membangun 4 segmen donat satu kali (urutan tetap: Saham, Properti, Kripto, Forex).
+ * Membangun segmen donat satu kali (Saham, Kripto, Forex).
  */
 function ensureDonutSkeleton() {
   if (donutBuilt || !donutSegmentsGroup) return;
@@ -493,82 +425,6 @@ function updateDonut(allocation) {
     );
     segment.setAttribute('stroke-dashoffset', String(-offset));
     offset += length;
-  });
-}
-
-let breakdownBuilt = false;
-const breakdownRows = {};
-
-/**
- * Membangun 4 baris breakdown alokasi satu kali (nama, subjudul, bar, nilai).
- */
-function ensureBreakdownSkeleton() {
-  if (breakdownBuilt || !allocBreakdown) return;
-  INVEST_CATEGORIES.forEach(function (cat) {
-    const meta = CATEGORY_META[cat];
-
-    const row = document.createElement('div');
-    row.className = 'alloc-row';
-
-    const top = document.createElement('div');
-    top.className = 'alloc-row__top';
-    const nameWrap = document.createElement('div');
-    nameWrap.className = 'alloc-row__name';
-    const dot = document.createElement('span');
-    dot.className = 'alloc-row__dot';
-    dot.style.backgroundColor = meta.color;
-    const name = document.createElement('span');
-    name.textContent = cat;
-    nameWrap.appendChild(dot);
-    nameWrap.appendChild(name);
-    const pct = document.createElement('strong');
-    pct.className = 'alloc-row__pct';
-    pct.textContent = formatSharePercent(0);
-    top.appendChild(nameWrap);
-    top.appendChild(pct);
-
-    const bottom = document.createElement('div');
-    bottom.className = 'alloc-row__bottom';
-    const subtitle = document.createElement('small');
-    subtitle.textContent = meta.subtitle;
-    const value = document.createElement('small');
-    value.className = 'alloc-row__value';
-    value.textContent = formatUsdCompact(0);
-    bottom.appendChild(subtitle);
-    bottom.appendChild(value);
-
-    const track = document.createElement('div');
-    track.className = 'alloc-track';
-    const fill = document.createElement('div');
-    fill.className = 'alloc-fill';
-    fill.style.backgroundColor = meta.color;
-    fill.style.width = '0%';
-    track.appendChild(fill);
-
-    row.appendChild(top);
-    row.appendChild(bottom);
-    row.appendChild(track);
-    allocBreakdown.appendChild(row);
-
-    breakdownRows[cat] = { pct: pct, value: value, fill: fill };
-  });
-  breakdownBuilt = true;
-}
-
-/**
- * Memperbarui angka & lebar bar breakdown alokasi.
- */
-function updateBreakdown(allocation) {
-  ensureBreakdownSkeleton();
-  if (!breakdownBuilt) return;
-  INVEST_CATEGORIES.forEach(function (cat) {
-    const row = breakdownRows[cat];
-    if (!row) return;
-    const value = allocation.byCategory[cat].totalValue;
-    const share = allocation.total > 0 ? (value / allocation.total) * 100 : 0;
-    row.pct.textContent = formatSharePercent(share);
-    row.value.textContent = formatUsdCompact(value);
-    row.fill.style.width = formatSharePercent(share);
   });
 }
 
@@ -727,55 +583,38 @@ export function renderInvestingScreen() {
     heroTotalValue.textContent = useCompactHero ? formatUsdCompact(total) : formatUsdFull(total);
     heroTotalValue.title = formatUsdFull(total);
   }
-  if (heroTotalPnl) {
-    const isPositive = allocation.pnlValue >= 0;
-    const sign = allocation.pnlValue >= 0 ? '+' : '-';
-    heroTotalPnl.textContent =
-      sign +
-      formatUsdCompact(Math.abs(allocation.pnlValue)) +
-      ' (' +
-      formatSignedPercentEn(allocation.pnlPct) +
-      ') sepanjang waktu';
-    heroTotalPnl.classList.toggle('pnl--positive', isPositive);
-    heroTotalPnl.classList.toggle('pnl--negative', !isPositive);
-  }
   if (heroHourlyYield) {
     heroHourlyYield.textContent = formatUsdCompact(hourlyYield);
     heroHourlyYield.title = formatUsdFull(hourlyYield) + ' per jam';
   }
-  if (heroIdleCash) {
-    heroIdleCash.textContent = formatUsdCompact(state.balance);
-    heroIdleCash.title = formatUsdFull(state.balance);
-  }
-  if (heroOpenPositions) {
-    heroOpenPositions.textContent = formatIntegerID(allocation.openPositions) + ' aset';
-  }
 
-  if (allocTotal) {
-    allocTotal.textContent = formatUsdCompact(total);
-    allocTotal.title = formatUsdFull(total);
-  }
-  if (allocTopName && allocTopShare) {
-    if (allocation.top) {
-      allocTopName.textContent = allocation.top;
-      allocTopShare.textContent =
-        formatSharePercent(allocation.topShare) + ' dari portofolio';
-    } else {
-      allocTopName.textContent = '\u2014';
-      allocTopShare.textContent = 'Belum ada posisi';
-    }
-  }
-  if (allocClasses) {
-    allocClasses.textContent =
-      formatIntegerID(allocation.classes) + ' / ' + formatIntegerID(CONFIG.INVEST_CATEGORY_COUNT);
-  }
   if (allocCenterTotal) {
     allocCenterTotal.textContent = formatUsdCompact(total);
   }
   updateDonut(allocation);
-  updateBreakdown(allocation);
-  if (allocEmpty) {
-    allocEmpty.hidden = total > 0;
+
+  INVEST_CATEGORIES.forEach(function (cat) {
+    const value = allocation.byCategory[cat].totalValue;
+    const share = allocation.total > 0 ? (value / allocation.total) * 100 : 0;
+    const assetCount = ASSETS.filter(function (asset) {
+      return asset.category === cat;
+    }).length;
+    if (CAT_CARD_SUBS[cat]) {
+      CAT_CARD_SUBS[cat].textContent =
+        CATEGORY_META[cat].subtitle + ' \u00B7 ' + formatIntegerID(assetCount) + ' aset';
+    }
+    if (CAT_CARD_TOTALS[cat]) {
+      CAT_CARD_TOTALS[cat].textContent = formatUsdCompact(value);
+      CAT_CARD_TOTALS[cat].title = formatUsdFull(value);
+    }
+    if (CAT_CARD_SHARES[cat]) {
+      CAT_CARD_SHARES[cat].textContent = formatSharePercent(share) + ' portofolio';
+    }
+  });
+
+  if (activeCategoryScreen && categoryWalletBalance) {
+    categoryWalletBalance.textContent = formatUsdCompact(state.balance);
+    categoryWalletBalance.title = formatUsdFull(state.balance);
   }
 
   ensureShelvesBuilt();
@@ -1209,6 +1048,48 @@ export function sellAsset(assetId, requestedQty) {
   return true;
 }
 
+export function openCategoryScreen(category) {
+  if (!INVEST_CATEGORIES.includes(category) || !investingCategoryScreen || !investingScreen) return;
+  activeCategoryScreen = category;
+  const assetCount = ASSETS.filter(function (asset) {
+    return asset.category === category;
+  }).length;
+  if (categoryScreenTitle) categoryScreenTitle.textContent = category;
+  if (categoryScreenSub) {
+    categoryScreenSub.textContent =
+      CATEGORY_META[category].subtitle + ' \u00B7 ' + formatIntegerID(assetCount) + ' aset';
+  }
+  categoryShelves.forEach(function (shelf) {
+    shelf.hidden = shelf.getAttribute('data-shelf') !== category;
+  });
+  investingScreen.hidden = true;
+  investingScreen.classList.remove('screen--active');
+  investingCategoryScreen.hidden = false;
+  investingCategoryScreen.classList.add('screen--active');
+  renderInvestingScreen();
+}
+
+export function closeCategoryScreen() {
+  activeCategoryScreen = null;
+  if (investingCategoryScreen) {
+    investingCategoryScreen.hidden = true;
+    investingCategoryScreen.classList.remove('screen--active');
+  }
+  if (investingScreen && state.activeTab === 'Investing') {
+    investingScreen.hidden = false;
+    investingScreen.classList.add('screen--active');
+    renderInvestingScreen();
+  }
+}
+
+export function resetInvestingNavigation() {
+  activeCategoryScreen = null;
+  if (investingCategoryScreen) {
+    investingCategoryScreen.hidden = true;
+    investingCategoryScreen.classList.remove('screen--active');
+  }
+}
+
 /**
  */
 export function openAssetDetail(assetId) {
@@ -1218,64 +1099,60 @@ export function openAssetDetail(assetId) {
   state.selectedQtyMode = CONFIG.DEFAULT_TRADE_QTY;
   investingScreen.hidden = true;
   investingScreen.classList.remove('screen--active');
+  if (investingCategoryScreen) {
+    investingCategoryScreen.hidden = true;
+    investingCategoryScreen.classList.remove('screen--active');
+  }
   assetDetailScreen.hidden = false;
   assetDetailScreen.classList.add('screen--active');
   renderAssetDetailScreen();
 }
 
 /**
- * Menutup layar detail aset dan kembali ke daftar investasi.
+ * Menutup layar detail aset dan kembali ke rak kategori atau dasbor investasi.
  */
 export function closeAssetDetail() {
   state.selectedAssetId = null;
-  if (portfolioScreen) {
-    portfolioScreen.hidden = true;
-    portfolioScreen.classList.remove('screen--active');
-  }
   if (assetDetailScreen) {
     assetDetailScreen.hidden = true;
     assetDetailScreen.classList.remove('screen--active');
   }
-  if (investingScreen && state.activeTab === 'Investing') {
-    investingScreen.hidden = false;
-    investingScreen.classList.add('screen--active');
-    renderInvestingScreen();
+  if (state.activeTab === 'Investing') {
+    if (activeCategoryScreen && investingCategoryScreen) {
+      investingCategoryScreen.hidden = false;
+      investingCategoryScreen.classList.add('screen--active');
+      renderInvestingScreen();
+    } else if (investingScreen) {
+      investingScreen.hidden = false;
+      investingScreen.classList.add('screen--active');
+      renderInvestingScreen();
+    }
   }
 }
 
 /**
- * Mendaftarkan seluruh event listener khusus tab Investasi (termasuk portofolio & detail aset).
+ * Mendaftarkan seluruh event listener khusus tab Investasi (kartu kategori, rak, & detail aset).
  */
 export function bindInvestingEvents() {
   if (!hasDOM) return;
 
-  // Kartu hero (Total Kepemilikan) membuka layar portofolio lengkap
-  if (heroPortfolioBtn) {
-    heroPortfolioBtn.addEventListener('click', openPortfolio);
-    heroPortfolioBtn.addEventListener('keydown', function (event) {
-      if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault();
-        openPortfolio();
+  categoryCards.forEach(function (card) {
+    card.addEventListener('click', function () {
+      const cat = card.getAttribute('data-invest-category');
+      if (cat) {
+        openCategoryScreen(cat);
       }
     });
-  }
+  });
 
-  if (portfolioBackBtn) {
-    portfolioBackBtn.addEventListener('click', function () {
-      if (portfolioScreen) {
-        portfolioScreen.hidden = true;
-        portfolioScreen.classList.remove('screen--active');
-      }
-      if (investingScreen && state.activeTab === 'Investing') {
-        investingScreen.hidden = false;
-        investingScreen.classList.add('screen--active');
-        renderInvestingScreen();
-      }
+  if (categoryBackBtn) {
+    categoryBackBtn.addEventListener('click', function () {
+      closeCategoryScreen();
     });
   }
 
   // Klik tile aset pada rak mana pun -> buka layar detail
-  [shelfTrackSaham, shelfTrackProperti, shelfTrackKripto, shelfTrackForex].forEach(function (track) {
+  [shelfTrackSaham, shelfTrackKripto, shelfTrackForex].forEach(function (track) {
     if (!track) return;
     track.addEventListener('click', function (event) {
       const card = event.target.closest('[data-asset-id]');
@@ -1322,13 +1199,15 @@ export function bindInvestingEvents() {
   document.addEventListener('keydown', function (event) {
     if (
       event.key === 'Escape' &&
-      assetDetailScreen &&
-      !assetDetailScreen.hidden &&
       (!roadmapModal || roadmapModal.hidden) &&
       (!resetModal || resetModal.hidden) &&
       (!offlineModal || offlineModal.hidden)
     ) {
-      closeAssetDetail();
+      if (assetDetailScreen && !assetDetailScreen.hidden) {
+        closeAssetDetail();
+      } else if (investingCategoryScreen && !investingCategoryScreen.hidden) {
+        closeCategoryScreen();
+      }
     }
   });
 
