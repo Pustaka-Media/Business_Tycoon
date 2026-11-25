@@ -6,12 +6,16 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "dev": "python3 -m http.server 8080 --directory public",
-    "lint": "node --check public/assets/core/main.js && node --check public/sw.js && node --check scripts/build.js && node scripts/lint.js",
+    "dev": "node server.js",
+    "start": "node server.js",
+    "lint": "node --check server.js && node --check public/assets/core/main.js && node --check public/sw.js && node --check scripts/build.js && node scripts/lint.js",
     "test": "node --test tests/smoke.test.js",
     "build": "node scripts/build.js"
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "express": "^5.3.0"
   }
 }
