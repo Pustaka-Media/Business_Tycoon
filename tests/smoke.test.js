@@ -110,11 +110,11 @@ test('Executive Black-Gold Precious Card: struktur SVG, branding fiktif, dan beb
   assert.ok(css.includes('.bank-card__balance--ultra-compact'));
 });
 
-test('INV-02 & INV-03: 33 aset investasi valid, 60 titik riwayat awal, dan tick harga finite', function () {
+test('INV-02 & INV-03: 32 aset investasi valid, 60 titik riwayat awal, dan tick harga finite', function () {
   mockStorage.clear();
   game.resetAllData();
 
-  assert.equal(game.ASSETS.length, 33);
+  assert.equal(game.ASSETS.length, 32);
   const byCategory = { Saham: 0, Properti: 0, Kripto: 0, Forex: 0 };
   game.ASSETS.forEach(function (asset) {
     byCategory[asset.category] += 1;
@@ -126,7 +126,7 @@ test('INV-02 & INV-03: 33 aset investasi valid, 60 titik riwayat awal, dan tick 
     });
   });
 
-  assert.deepEqual(byCategory, { Saham: 20, Properti: 4, Kripto: 5, Forex: 4 });
+  assert.deepEqual(byCategory, { Saham: 19, Properti: 4, Kripto: 5, Forex: 4 });
 
   // Jalankan beberapa tick harga 3 detik dan pastikan semua tetap finite dan dibatasi 60 titik
   for (let i = 0; i < 5; i += 1) {

@@ -19,7 +19,6 @@ import {
   formatUsdFull,
   formatUsdCompact,
   formatSignedPercent,
-  formatSignedPercentEn,
   formatIntegerID,
   formatTimeHHMM
 } from '../../utils/format.js';
@@ -30,15 +29,24 @@ import { renderStats, renderUpgrades } from '../earnings/earnings.js';
 // Referensi elemen DOM (null di lingkungan pengujian Node)
 const investingScreen = getEl('investing-screen');
 const investingCategoryScreen = getEl('investing-category-screen');
+const investingOwnedScreen = getEl('investing-owned-screen');
 const assetDetailScreen = getEl('asset-detail-screen');
 const heroTotalValue = getEl('hero-total-value');
 const heroHourlyYield = getEl('hero-hourly-yield');
 const allocCenterTotal = getEl('alloc-center-total');
 const donutSegmentsGroup = getEl('donut-segments');
-const categoryBackBtn = getEl('category-back-btn');
-const categoryScreenTitle = getEl('category-screen-title');
-const categoryScreenSub = getEl('category-screen-sub');
-const categoryWalletBalance = getEl('category-wallet-balance');
+const categoryBody = getEl('category-body');
+const categoryPortfolioCard = getEl('category-portfolio-card');
+const catPortfolioTitle = getEl('cat-portfolio-title');
+const catPortfolioLabel = getEl('cat-portfolio-label');
+const catPortfolioValue = getEl('cat-portfolio-value');
+const catPortfolioPnl = getEl('cat-portfolio-pnl');
+const catPortfolioYield = getEl('cat-portfolio-yield');
+const ownedBody = getEl('owned-body');
+const ownedListTrack = getEl('owned-list-track');
+const ownedEmptyState = getEl('owned-empty-state');
+const ownedEmptyText = getEl('owned-empty-text');
+const ownedEmptyCtaBtn = getEl('owned-empty-cta-btn');
 const categoryCards = hasDOM ? Array.from(document.querySelectorAll('[data-invest-category]')) : [];
 const categoryShelves = hasDOM ? Array.from(document.querySelectorAll('[data-shelf]')) : [];
 const catCardSubSaham = getEl('cat-card-sub-Saham');
@@ -50,9 +58,6 @@ const catCardTotalForex = getEl('cat-card-total-Forex');
 const catCardShareSaham = getEl('cat-card-share-Saham');
 const catCardShareKripto = getEl('cat-card-share-Kripto');
 const catCardShareForex = getEl('cat-card-share-Forex');
-const shelfTotalSaham = getEl('shelf-total-Saham');
-const shelfTotalKripto = getEl('shelf-total-Kripto');
-const shelfTotalForex = getEl('shelf-total-Forex');
 const shelfTrackSaham = getEl('shelf-track-Saham');
 const shelfTrackKripto = getEl('shelf-track-Kripto');
 const shelfTrackForex = getEl('shelf-track-Forex');
@@ -236,68 +241,37 @@ export function getCategorySummary(category) {
   };
 }
 
-/**
- * Membangun sparkline mini (SVG polyline + area fill) dari riwayat harga aset.
- * Mengembalikan null bila data belum cukup; seluruh angka dihitung saat runtime.
- */
-function buildSparklineMarkup(assetId, isUp) {
-  const history = Array.isArray(state.priceHistory[assetId]) ? state.priceHistory[assetId] : [];
-  const prices = history
-    .slice(-CONFIG.HISTORY_MAX)
-    .map(function (entry) {
-      return Number(entry && entry.price);
-    })
-    .filter(function (price) {
-      return Number.isFinite(price) && price > 0;
-    });
-  if (prices.length < CONFIG.SPARKLINE_MIN_POINTS) return '';
-
-  const width = CONFIG.SPARKLINE_WIDTH;
-  const height = CONFIG.SPARKLINE_HEIGHT;
-  const pad = CONFIG.SPARKLINE_VIEWBOX_PADDING;
-  const min = Math.min.apply(null, prices);
-  const max = Math.max.apply(null, prices);
-  const range = max - min;
-  const usableWidth = width - pad - pad;
-  const usableHeight = height - pad - pad;
-  const stepX = usableWidth / (prices.length - 1);
-
-  const line = prices
-    .map(function (price, idx) {
-      const ratio = range > 0 ? (price - min) / range : CONFIG.SPARKLINE_FLAT_RATIO;
-      const x = pad + stepX * idx;
-      const y = pad + (1 - ratio) * usableHeight;
-      return x.toFixed(1) + ',' + y.toFixed(1);
-    })
-    .join(' ');
-  const area = '0,' + String(height) + ' ' + line + ' ' + String(width) + ',' + String(height);
-  const tone = isUp ? 'up' : 'down';
-
-  return (
-    '<svg viewBox="0 0 ' + String(width) + ' ' + String(height) +
-    '" class="asset-card__spark-svg asset-card__spark-svg--' + tone +
-    '" aria-hidden="true" focusable="false">' +
-    '<polygon class="spark-fill" points="' + area + '"></polygon>' +
-    '<polyline class="spark-line" points="' + line + '"></polyline>' +
-    '</svg>'
-  );
-}
-
 const INVEST_CATEGORIES = ['Saham', 'Kripto', 'Forex'];
 const CATEGORY_META = {
-  Saham: { subtitle: 'Ekuitas', color: '#2563EB' },
-  Kripto: { subtitle: 'Aset Digital', color: '#EA580C' },
-  Forex: { subtitle: 'Mata Uang', color: '#7C3AED' }
+  Saham: {
+    subtitle: 'Ekuitas',
+    color: '#2563EB',
+    portfolioTitle: 'Portofolio Saham Saya',
+    portfolioLabel: 'Nilai portofolio saham',
+    ownedTitle: 'Saham Saya',
+    emptyText: 'Belum ada saham yang dibeli.'
+  },
+  Kripto: {
+    subtitle: 'Aset Digital',
+    color: '#EA580C',
+    portfolioTitle: 'Portofolio Kripto Saya',
+    portfolioLabel: 'Nilai portofolio kripto',
+    ownedTitle: 'Kripto Saya',
+    emptyText: 'Belum ada aset kripto yang dibeli.'
+  },
+  Forex: {
+    subtitle: 'Mata Uang',
+    color: '#7C3AED',
+    portfolioTitle: 'Portofolio Forex Saya',
+    portfolioLabel: 'Nilai portofolio forex',
+    ownedTitle: 'Forex Saya',
+    emptyText: 'Belum ada pasangan forex yang dibeli.'
+  }
 };
 const SHELF_TRACKS = {
   Saham: shelfTrackSaham,
   Kripto: shelfTrackKripto,
   Forex: shelfTrackForex
-};
-const SHELF_TOTALS = {
-  Saham: shelfTotalSaham,
-  Kripto: shelfTotalKripto,
-  Forex: shelfTotalForex
 };
 const CAT_CARD_SUBS = {
   Saham: catCardSubSaham,
@@ -316,6 +290,7 @@ const CAT_CARD_SHARES = {
 };
 
 let activeCategoryScreen = null;
+let isOwnedScreenOpen = false;
 
 /**
  * Menghitung ringkasan portofolio lintas 4 kelas aset (nilai, P&L, alokasi,
@@ -454,9 +429,6 @@ function ensureShelvesBuilt() {
       tile.setAttribute('role', 'listitem');
       tile.setAttribute('aria-label', 'Beli atau jual ' + asset.name);
 
-      const top = document.createElement('span');
-      top.className = 'tile__top';
-
       const avatar = document.createElement('span');
       avatar.className = 'tile__avatar';
       if (asset.iconId) {
@@ -470,21 +442,27 @@ function ensureShelvesBuilt() {
         avatar.textContent = asset.symbol;
       }
 
-      const ownedBadge = document.createElement('span');
-      ownedBadge.className = 'tile__owned';
-      ownedBadge.textContent = 'DIMILIKI';
-      ownedBadge.hidden = true;
+      const infoEl = document.createElement('span');
+      infoEl.className = 'tile__info';
 
-      top.appendChild(avatar);
-      top.appendChild(ownedBadge);
+      const nameRow = document.createElement('span');
+      nameRow.className = 'tile__name-row';
 
       const nameEl = document.createElement('span');
       nameEl.className = 'tile__name';
       nameEl.textContent = asset.name;
 
-      const sparkEl = document.createElement('span');
-      sparkEl.className = 'tile__spark';
-      sparkEl.setAttribute('aria-hidden', 'true');
+      nameRow.appendChild(nameEl);
+
+      const symbolEl = document.createElement('span');
+      symbolEl.className = 'tile__symbol';
+      symbolEl.textContent = 'Tersedia';
+
+      infoEl.appendChild(nameRow);
+      infoEl.appendChild(symbolEl);
+
+      const rightEl = document.createElement('span');
+      rightEl.className = 'tile__right';
 
       const priceEl = document.createElement('span');
       priceEl.className = 'tile__price';
@@ -492,14 +470,21 @@ function ensureShelvesBuilt() {
       const changeEl = document.createElement('span');
       changeEl.className = 'tile__change tile__change--up';
 
-      tile.appendChild(top);
-      tile.appendChild(nameEl);
-      tile.appendChild(sparkEl);
-      tile.appendChild(priceEl);
-      tile.appendChild(changeEl);
+      rightEl.appendChild(priceEl);
+      rightEl.appendChild(changeEl);
+
+      tile.appendChild(avatar);
+      tile.appendChild(infoEl);
+      tile.appendChild(rightEl);
       track.appendChild(tile);
 
-      shelfTiles.push({ asset: asset, tile: tile, ownedBadge: ownedBadge, sparkEl: sparkEl, priceEl: priceEl, changeEl: changeEl });
+      shelfTiles.push({
+        asset: asset,
+        tile: tile,
+        symbolEl: symbolEl,
+        priceEl: priceEl,
+        changeEl: changeEl
+      });
     });
   });
   shelvesBuilt = true;
@@ -517,9 +502,9 @@ function formatTilePrice(price) {
 }
 
 /**
- * Memperbarui tile aset (harga, perubahan, sparkline, badge kepemilikan, flash) & total per rak.
+ * Memperbarui baris produk pasar pada daftar seluruh produk investasi.
  */
-function updateShelves(allocation) {
+function updateShelves() {
   shelfTiles.forEach(function (entry) {
     const asset = entry.asset;
     const holding = state.holdings[asset.id];
@@ -527,15 +512,16 @@ function updateShelves(allocation) {
     const currentPrice = getCurrentAssetPrice(asset.id);
     const changePct = getAssetChangePercent(asset.id);
     const isUp = changePct >= 0;
-
     const hasUnits = units > 0;
+
     entry.tile.classList.toggle('tile--owned', hasUnits);
-    if (entry.ownedBadge) {
-      entry.ownedBadge.hidden = !hasUnits;
+
+    if (entry.symbolEl) {
+      entry.symbolEl.textContent = hasUnits
+        ? 'Dimiliki \u00B7 ' + formatIntegerID(units) + ' ' + asset.unitLabel
+        : 'Tersedia';
     }
-    if (entry.sparkEl) {
-      entry.sparkEl.innerHTML = buildSparklineMarkup(asset.id, isUp);
-    }
+
     if (entry.priceEl) {
       const previousRaw = entry.tile.dataset.prevPrice;
       const previousPrice = previousRaw ? Number(previousRaw) : Number.NaN;
@@ -550,26 +536,152 @@ function updateShelves(allocation) {
       entry.priceEl.textContent = formatTilePrice(currentPrice);
       entry.priceEl.title = formatUsdFull(currentPrice);
     }
+
     if (entry.changeEl) {
+      const absStr = Math.abs(changePct).toFixed(CONFIG.CURRENCY_DECIMALS).replace('.', ',');
       entry.changeEl.className =
         'tile__change ' + (isUp ? 'tile__change--up' : 'tile__change--down');
-      entry.changeEl.textContent =
-        (isUp ? '\u25B2 ' : '\u25BC ') + formatSignedPercentEn(changePct);
+      entry.changeEl.textContent = (isUp ? '\u25B2 ' : '\u25BC ') + absStr + '%';
     }
-  });
-
-  INVEST_CATEGORIES.forEach(function (cat) {
-    const target = SHELF_TOTALS[cat];
-    if (!target) return;
-    const value = allocation.byCategory[cat].totalValue;
-    const share = allocation.total > 0 ? (value / allocation.total) * 100 : 0;
-    target.textContent = formatUsdCompact(value) + ' \u00B7 ' + formatSharePercent(share);
-    target.title = formatUsdFull(value);
   });
 }
 
 /**
- * Merender layar utama Investasi: hero portofolio, alokasi aset, dan rak per kategori.
+ * Memperbarui kartu portofolio biru di bagian atas layar daftar produk kategori.
+ */
+function updateCategoryPortfolioCard(allocation) {
+  if (!activeCategoryScreen || !allocation) return;
+  const meta = CATEGORY_META[activeCategoryScreen];
+  const summary = allocation.byCategory[activeCategoryScreen];
+  if (!meta || !summary) return;
+
+  if (catPortfolioTitle) catPortfolioTitle.textContent = meta.portfolioTitle;
+  if (catPortfolioLabel) catPortfolioLabel.textContent = meta.portfolioLabel;
+  if (catPortfolioValue) {
+    catPortfolioValue.textContent = formatUsdFull(summary.totalValue);
+  }
+  if (catPortfolioPnl) {
+    const isPositive = summary.pnlValue >= 0;
+    const signPrefix = isPositive ? '+ ' : '- ';
+    const absPctStr = Math.abs(summary.pnlPct).toFixed(CONFIG.CURRENCY_DECIMALS).replace('.', ',');
+    catPortfolioPnl.textContent =
+      signPrefix + formatUsdFull(Math.abs(summary.pnlValue)) + ' (' + absPctStr + '%)';
+    catPortfolioPnl.classList.toggle('pnl--positive', isPositive);
+    catPortfolioPnl.classList.toggle('pnl--negative', !isPositive);
+  }
+  if (catPortfolioYield) {
+    catPortfolioYield.textContent = formatUsdFull(summary.hourlyYield);
+  }
+}
+
+/**
+ * Merender daftar produk yang dimiliki pemain di layar Portofolio Saya (dalam kartu biru).
+ */
+function updateOwnedListScreen() {
+  if (!hasDOM || !activeCategoryScreen || !ownedListTrack) return;
+  const meta = CATEGORY_META[activeCategoryScreen];
+
+  const ownedRows = ASSETS.filter(function (asset) {
+    if (asset.category !== activeCategoryScreen) return false;
+    const holding = state.holdings[asset.id];
+    const units = holding && Number.isFinite(Number(holding.units)) ? Number(holding.units) : 0;
+    return units > 0;
+  }).map(function (asset) {
+    const holding = state.holdings[asset.id];
+    const units = Number(holding.units);
+    const avgEntry = Number.isFinite(Number(holding.avgEntry)) ? Number(holding.avgEntry) : 0;
+    const currentPrice = getCurrentAssetPrice(asset.id);
+    const positionValue = units * currentPrice;
+    const totalCost = units * avgEntry;
+    const rawPct = totalCost > 0 ? ((positionValue - totalCost) / totalCost) * 100 : 0;
+    return {
+      asset: asset,
+      units: units,
+      positionValue: positionValue,
+      unrealizedPct: Number.isFinite(rawPct) ? rawPct : 0
+    };
+  });
+
+  ownedRows.sort(function (a, b) {
+    return b.positionValue - a.positionValue;
+  });
+
+  ownedListTrack.innerHTML = '';
+  if (ownedRows.length === 0) {
+    if (ownedEmptyText && meta) {
+      ownedEmptyText.textContent = meta.emptyText;
+    }
+    if (ownedEmptyState) ownedEmptyState.hidden = false;
+    return;
+  }
+
+  if (ownedEmptyState) ownedEmptyState.hidden = true;
+
+  ownedRows.forEach(function (item) {
+    const asset = item.asset;
+    const tile = document.createElement('button');
+    tile.type = 'button';
+    tile.className = 'tile';
+    tile.setAttribute('data-asset-id', asset.id);
+    tile.setAttribute('role', 'listitem');
+    tile.setAttribute('aria-label', 'Buka detail ' + asset.name);
+
+    const avatar = document.createElement('span');
+    avatar.className = 'tile__avatar';
+    if (asset.iconId) {
+      avatar.classList.add('tile__avatar--logo');
+      avatar.innerHTML =
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><use href="#' +
+        asset.iconId +
+        '"></use></svg>';
+    } else {
+      avatar.style.backgroundColor = asset.color;
+      avatar.textContent = asset.symbol;
+    }
+
+    const infoEl = document.createElement('span');
+    infoEl.className = 'tile__info';
+
+    const nameRow = document.createElement('span');
+    nameRow.className = 'tile__name-row';
+
+    const nameEl = document.createElement('span');
+    nameEl.className = 'tile__name';
+    nameEl.textContent = asset.name;
+    nameRow.appendChild(nameEl);
+
+    const unitsEl = document.createElement('span');
+    unitsEl.className = 'tile__symbol';
+    unitsEl.textContent = formatIntegerID(item.units) + ' ' + asset.unitLabel;
+
+    infoEl.appendChild(nameRow);
+    infoEl.appendChild(unitsEl);
+
+    const rightEl = document.createElement('span');
+    rightEl.className = 'tile__right';
+
+    const valueEl = document.createElement('span');
+    valueEl.className = 'tile__price';
+    valueEl.textContent = formatTilePrice(item.positionValue);
+    valueEl.title = formatUsdFull(item.positionValue);
+
+    const pnlUp = item.unrealizedPct >= 0;
+    const pnlEl = document.createElement('span');
+    pnlEl.className = 'tile__change ' + (pnlUp ? 'tile__change--up' : 'tile__change--down');
+    pnlEl.textContent = formatSignedPercent(item.unrealizedPct);
+
+    rightEl.appendChild(valueEl);
+    rightEl.appendChild(pnlEl);
+
+    tile.appendChild(avatar);
+    tile.appendChild(infoEl);
+    tile.appendChild(rightEl);
+    ownedListTrack.appendChild(tile);
+  });
+}
+
+/**
+ * Merender layar utama Investasi: hero portofolio, alokasi aset, dan daftar kategori.
  */
 export function renderInvestingScreen() {
   if (!investingScreen) return;
@@ -612,13 +724,12 @@ export function renderInvestingScreen() {
     }
   });
 
-  if (activeCategoryScreen && categoryWalletBalance) {
-    categoryWalletBalance.textContent = formatUsdCompact(state.balance);
-    categoryWalletBalance.title = formatUsdFull(state.balance);
-  }
-
+  updateCategoryPortfolioCard(allocation);
   ensureShelvesBuilt();
-  updateShelves(allocation);
+  updateShelves();
+  if (isOwnedScreenOpen) {
+    updateOwnedListScreen();
+  }
 }
 
 export function resolveTradeQuantities(currentPrice, ownedUnits) {
@@ -1051,13 +1162,10 @@ export function sellAsset(assetId, requestedQty) {
 export function openCategoryScreen(category) {
   if (!INVEST_CATEGORIES.includes(category) || !investingCategoryScreen || !investingScreen) return;
   activeCategoryScreen = category;
-  const assetCount = ASSETS.filter(function (asset) {
-    return asset.category === category;
-  }).length;
-  if (categoryScreenTitle) categoryScreenTitle.textContent = category;
-  if (categoryScreenSub) {
-    categoryScreenSub.textContent =
-      CATEGORY_META[category].subtitle + ' \u00B7 ' + formatIntegerID(assetCount) + ' aset';
+  isOwnedScreenOpen = false;
+  if (investingOwnedScreen) {
+    investingOwnedScreen.hidden = true;
+    investingOwnedScreen.classList.remove('screen--active');
   }
   categoryShelves.forEach(function (shelf) {
     shelf.hidden = shelf.getAttribute('data-shelf') !== category;
@@ -1066,11 +1174,19 @@ export function openCategoryScreen(category) {
   investingScreen.classList.remove('screen--active');
   investingCategoryScreen.hidden = false;
   investingCategoryScreen.classList.add('screen--active');
+  if (categoryBody) {
+    categoryBody.scrollTop = 0;
+  }
   renderInvestingScreen();
 }
 
 export function closeCategoryScreen() {
   activeCategoryScreen = null;
+  isOwnedScreenOpen = false;
+  if (investingOwnedScreen) {
+    investingOwnedScreen.hidden = true;
+    investingOwnedScreen.classList.remove('screen--active');
+  }
   if (investingCategoryScreen) {
     investingCategoryScreen.hidden = true;
     investingCategoryScreen.classList.remove('screen--active');
@@ -1082,8 +1198,39 @@ export function closeCategoryScreen() {
   }
 }
 
+export function openOwnedScreen() {
+  if (!activeCategoryScreen || !investingOwnedScreen || !investingCategoryScreen) return;
+  isOwnedScreenOpen = true;
+  investingCategoryScreen.hidden = true;
+  investingCategoryScreen.classList.remove('screen--active');
+  investingOwnedScreen.hidden = false;
+  investingOwnedScreen.classList.add('screen--active');
+  if (ownedBody) {
+    ownedBody.scrollTop = 0;
+  }
+  updateOwnedListScreen();
+}
+
+export function closeOwnedScreen() {
+  isOwnedScreenOpen = false;
+  if (investingOwnedScreen) {
+    investingOwnedScreen.hidden = true;
+    investingOwnedScreen.classList.remove('screen--active');
+  }
+  if (activeCategoryScreen && investingCategoryScreen && state.activeTab === 'Investing') {
+    investingCategoryScreen.hidden = false;
+    investingCategoryScreen.classList.add('screen--active');
+    renderInvestingScreen();
+  }
+}
+
 export function resetInvestingNavigation() {
   activeCategoryScreen = null;
+  isOwnedScreenOpen = false;
+  if (investingOwnedScreen) {
+    investingOwnedScreen.hidden = true;
+    investingOwnedScreen.classList.remove('screen--active');
+  }
   if (investingCategoryScreen) {
     investingCategoryScreen.hidden = true;
     investingCategoryScreen.classList.remove('screen--active');
@@ -1103,13 +1250,17 @@ export function openAssetDetail(assetId) {
     investingCategoryScreen.hidden = true;
     investingCategoryScreen.classList.remove('screen--active');
   }
+  if (investingOwnedScreen) {
+    investingOwnedScreen.hidden = true;
+    investingOwnedScreen.classList.remove('screen--active');
+  }
   assetDetailScreen.hidden = false;
   assetDetailScreen.classList.add('screen--active');
   renderAssetDetailScreen();
 }
 
 /**
- * Menutup layar detail aset dan kembali ke rak kategori atau dasbor investasi.
+ * Menutup layar detail aset dan kembali ke daftar dimiliki, kategori, atau dasbor investasi.
  */
 export function closeAssetDetail() {
   state.selectedAssetId = null;
@@ -1118,7 +1269,11 @@ export function closeAssetDetail() {
     assetDetailScreen.classList.remove('screen--active');
   }
   if (state.activeTab === 'Investing') {
-    if (activeCategoryScreen && investingCategoryScreen) {
+    if (isOwnedScreenOpen && activeCategoryScreen && investingOwnedScreen) {
+      investingOwnedScreen.hidden = false;
+      investingOwnedScreen.classList.add('screen--active');
+      renderInvestingScreen();
+    } else if (activeCategoryScreen && investingCategoryScreen) {
       investingCategoryScreen.hidden = false;
       investingCategoryScreen.classList.add('screen--active');
       renderInvestingScreen();
@@ -1131,7 +1286,7 @@ export function closeAssetDetail() {
 }
 
 /**
- * Mendaftarkan seluruh event listener khusus tab Investasi (kartu kategori, rak, & detail aset).
+ * Mendaftarkan seluruh event listener khusus tab Investasi (kartu kategori, portofolio, & detail aset).
  */
 export function bindInvestingEvents() {
   if (!hasDOM) return;
@@ -1145,14 +1300,20 @@ export function bindInvestingEvents() {
     });
   });
 
-  if (categoryBackBtn) {
-    categoryBackBtn.addEventListener('click', function () {
-      closeCategoryScreen();
+  if (categoryPortfolioCard) {
+    categoryPortfolioCard.addEventListener('click', function () {
+      openOwnedScreen();
     });
   }
 
-  // Klik tile aset pada rak mana pun -> buka layar detail
-  [shelfTrackSaham, shelfTrackKripto, shelfTrackForex].forEach(function (track) {
+  if (ownedEmptyCtaBtn) {
+    ownedEmptyCtaBtn.addEventListener('click', function () {
+      closeOwnedScreen();
+    });
+  }
+
+  // Klik tile aset pada daftar kategori maupun portofolio dimiliki -> buka layar detail
+  [shelfTrackSaham, shelfTrackKripto, shelfTrackForex, ownedListTrack].forEach(function (track) {
     if (!track) return;
     track.addEventListener('click', function (event) {
       const card = event.target.closest('[data-asset-id]');
@@ -1205,6 +1366,8 @@ export function bindInvestingEvents() {
     ) {
       if (assetDetailScreen && !assetDetailScreen.hidden) {
         closeAssetDetail();
+      } else if (investingOwnedScreen && !investingOwnedScreen.hidden) {
+        closeOwnedScreen();
       } else if (investingCategoryScreen && !investingCategoryScreen.hidden) {
         closeCategoryScreen();
       }

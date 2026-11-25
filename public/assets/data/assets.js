@@ -1,5 +1,5 @@
 /* ==========================================================================
-   BUSINESS TYCOON TAP - ASET PASAR (33 instrumen: Saham, Properti, Kripto, Forex)
+   BUSINESS TYCOON TAP - ASET PASAR (32 instrumen: Saham, Properti, Kripto, Forex)
    ========================================================================== */
 
 export const ASSETS = Object.freeze([
@@ -199,20 +199,6 @@ export const ASSETS = Object.freeze([
     country: 'Jepang'
   },
   {
-    id: 'saham_samsung',
-    name: 'Samsung Electronics',
-    category: 'Saham',
-    initialPrice: 1850000,
-    volatility: 0.017,
-    yieldRate: 0.0018,
-    color: '#1428A0',
-    symbol: '005930.KS',
-    unitLabel: 'lembar',
-    iconId: 'icon-stock-samsung',
-    sector: 'Elektronik & semikonduktor',
-    country: 'Korea Selatan'
-  },
-  {
     id: 'saham_alibaba',
     name: 'Alibaba',
     category: 'Saham',
@@ -323,9 +309,10 @@ export const ASSETS = Object.freeze([
     initialPrice: 1600000000,
     volatility: 0.030,
     yieldRate: 0,
-    color: '#F97316',
+    color: '#F7931A',
     symbol: 'BTC',
-    unitLabel: 'koin'
+    unitLabel: 'koin',
+    iconId: 'icon-crypto-bitcoin'
   },
   {
     id: 'kripto_ethereum',
@@ -334,9 +321,10 @@ export const ASSETS = Object.freeze([
     initialPrice: 55000000,
     volatility: 0.028,
     yieldRate: 0,
-    color: '#7C3AED',
+    color: '#627EEA',
     symbol: 'ETH',
-    unitLabel: 'koin'
+    unitLabel: 'koin',
+    iconId: 'icon-crypto-ethereum'
   },
   {
     id: 'kripto_solana',
@@ -345,9 +333,10 @@ export const ASSETS = Object.freeze([
     initialPrice: 2800000,
     volatility: 0.035,
     yieldRate: 0,
-    color: '#9333EA',
+    color: '#0F172A',
     symbol: 'SOL',
-    unitLabel: 'koin'
+    unitLabel: 'koin',
+    iconId: 'icon-crypto-solana'
   },
   {
     id: 'kripto_dogecoin',
@@ -356,9 +345,10 @@ export const ASSETS = Object.freeze([
     initialPrice: 2500,
     volatility: 0.045,
     yieldRate: 0,
-    color: '#D97706',
+    color: '#C2A633',
     symbol: 'DOGE',
-    unitLabel: 'koin'
+    unitLabel: 'koin',
+    iconId: 'icon-crypto-dogecoin'
   },
   {
     id: 'kripto_ripplex',
@@ -367,9 +357,10 @@ export const ASSETS = Object.freeze([
     initialPrice: 9800,
     volatility: 0.032,
     yieldRate: 0,
-    color: '#57534E',
+    color: '#111827',
     symbol: 'XRP',
-    unitLabel: 'koin'
+    unitLabel: 'koin',
+    iconId: 'icon-crypto-xrp'
   },
 
   // 4. Forex (tanpa yield, volatilitas rendah)
@@ -382,7 +373,8 @@ export const ASSETS = Object.freeze([
     yieldRate: 0,
     color: '#15803D',
     symbol: 'USD',
-    unitLabel: 'lot'
+    unitLabel: 'lot',
+    iconId: 'icon-forex-usdidr'
   },
   {
     id: 'forex_eur_usd',
@@ -391,9 +383,10 @@ export const ASSETS = Object.freeze([
     initialPrice: 17500,
     volatility: 0.002,
     yieldRate: 0,
-    color: '#B91C1C',
+    color: '#1D4ED8',
     symbol: 'EUR',
-    unitLabel: 'lot'
+    unitLabel: 'lot',
+    iconId: 'icon-forex-eurusd'
   },
   {
     id: 'forex_gbp_usd',
@@ -402,9 +395,10 @@ export const ASSETS = Object.freeze([
     initialPrice: 20600,
     volatility: 0.0025,
     yieldRate: 0,
-    color: '#9A3412',
+    color: '#7C3AED',
     symbol: 'GBP',
-    unitLabel: 'lot'
+    unitLabel: 'lot',
+    iconId: 'icon-forex-gbpusd'
   },
   {
     id: 'forex_jpy_usd',
@@ -415,6 +409,7 @@ export const ASSETS = Object.freeze([
     yieldRate: 0,
     color: '#DC2626',
     symbol: 'JPY',
-    unitLabel: 'lot'
+    unitLabel: 'lot',
+    iconId: 'icon-forex-jpyusd'
   }
 ]);

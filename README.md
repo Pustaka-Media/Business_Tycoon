@@ -37,7 +37,7 @@ npm test        # Smoke test (Node test runner, ESM)
 │   │   │   ├── config.js          #   CONFIG terpusat (SATU-SATUNYA tempat konstanta numerik)
 │   │   │   └── state.js           #   State tunggal + mesin simpan (Save Schema v2)
 │   │   ├── data/                  # Katalog data statis game
-│   │   │   └── assets.js          #   Data 33 aset investasi
+│   │   │   └── assets.js          #   Data 32 aset investasi
 │   │   ├── utils/                 # Fungsi utilitas murni & DOM helper
 │   │   │   ├── dom.js             #   Pembantu akses DOM
 │   │   │   └── format.js          #   Format angka, USD, Rupiah, %, & waktu
@@ -157,7 +157,7 @@ Hanya dalam tiga kasus ini, dan tetap dicatat di commit:
 ## 6. Pengujian & Kualitas
 
 - `npm run lint` — memverifikasi: `index.html` sinkron dengan template & partial, JSON valid, SVG `<use>` cocok dengan `<symbol>`, ikon PWA tersedia, `prefers-reduced-motion` & `:focus-visible` terpasang pada gabungan CSS (`styles/` + `tabs/`), dan tidak ada angka literal di luar `CONFIG` (`core/config.js`) maupun `ASSETS` (`data/assets.js`).
-- `npm test` — smoke test: skema simpan v1→v2, format angka, kalkulasi biaya upgrade, batas offline 2 jam, transaksi beli/jual aset, dan kelengkapan 33 aset investasi.
+- `npm test` — smoke test: skema simpan v1→v2, format angka, kalkulasi biaya upgrade, batas offline 2 jam, transaksi beli/jual aset, dan kelengkapan 32 aset investasi.
 - CI: `.github/workflows/static.yml` — menjalankan cek sintaksis, `npm run lint`, dan `npm test` pada push/PR ke `main`.
 
 ## 7. Integrasi Firebase (Persiapan Cloud Save)
