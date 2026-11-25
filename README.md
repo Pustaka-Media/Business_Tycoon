@@ -14,7 +14,8 @@ Simulasi bisnis ketuk layar *mobile-first* — **HTML5 + CSS3 + Vanilla JavaScri
 ## 1. Perintah
 
 ```bash
-npm run dev     # Peladen lokal sederhana (http://localhost:8080), root = public/
+npm run dev     # Peladen Express lokal (http://localhost:3000), root = public/
+npm start       # Menjalankan peladen produksi (node server.js)
 npm run build   # Merakit public/index.html dari index.template.html + partial tab
 npm run lint    # Cek sinkron index.html, JSON, SVG sprite, aksesibilitas, magic number
 npm test        # Smoke test (Node test runner, ESM)
@@ -51,7 +52,7 @@ npm test        # Smoke test (Node test runner, ESM)
 │   │   │   └── responsive.css     #   Penyesuaian tata letak responsif
 │   │   ├── tabs/                  # SATU FOLDER PER TAB — semua berkas tab tinggal di sini
 │   │   │   ├── earnings/          #   Pendapatan: earnings.html + .css + .js
-│   │   │   ├── investing/         #   Investasi: investing.html + .css + .js
+│   │   │   ├── investing/         #   Investasi: investing.html (dasbor, rak kategori, detail aset) + .css + .js
 │   │   │   ├── business/          #   Usaha: business.html + .css + .js
 │   │   │   ├── items/             #   Item: items.js (memakai preview-screen bersama)
 │   │   │   └── profile/           #   Profil: profile.html + .css + .js
@@ -60,10 +61,12 @@ npm test        # Smoke test (Node test runner, ESM)
 │   ├── index.html                 # HASIL GENERATE (jangan diedit manual)
 │   ├── manifest.webmanifest       # Metadata PWA
 │   └── sw.js                      # Service Worker cache-first
+├── package.json                   # Konfigurasi paket & skrip npm
 ├── scripts/build.js               # Perakit index.html
 ├── scripts/lint.js                # Pemeriksa statis
-├── server.js                      # Peladen Express statis
-└── tests/smoke.test.js            # Smoke test otomatis
+├── server.js                      # Peladen Express statis (port 3000)
+├── tests/smoke.test.js            # Smoke test otomatis
+└── vercel.json                    # Konfigurasi hosting statis Vercel
 ```
 
 ## 3. ATURAN UTAMA — Satu Tab = Satu Folder
@@ -144,23 +147,22 @@ Hanya dalam tiga kasus ini, dan tetap dicatat di commit:
 2. `npm run lint` tetap wajib hijau (tidak mengecek bahasa — ini tanggung jawab reviewer/manusia).
 3. PR/commit yang menambahkan teks Inggris di UI **harus ditolak**.
 
-**Pelanggaran yang MASIH ADA (harus diseragamkan — jangan ditambah lagi):**
+**Status Penyeragaman Bahasa:**
 
-*Dasbor Investasi (commit `e3f622f`):*
+- *Tab Investasi (`investing.html`, `investing.js`):* sudah diseragamkan ke Bahasa Indonesia penuh (dasbor kepemilikan, diagram distribusi kelas aset, kartu kategori `Saham` / `Kripto` / `Forex`, rak aset, dan layar detail aset).
+- *Konfigurasi (`core/config.js`):* `INVEST_SUMMARY_LABELS.Kripto` (`Total nilai kriptocurrency`) masih menunggu pembaruan pada tahap penyesuaian sistem inti.
 
-- `investing.html`: `TERMINAL PORTOFOLIO` → usul `DASBOR PORTOFOLIO`; `LIVE · USD` → `LANGSUNG · USD`; `TOTAL PORTFOLIO VALUE` → `TOTAL NILAI PORTOFOLIO`; `LIVE · 3s` → `LANGSUNG · 3 dtk`; judul panel `Asset Allocation` → `Alokasi Aset`; `TOTAL PORTOFOLIO` (tetap — `portofolio` serapan); `TOP ALLOCATION` → `ALOKASI TERBESAR`; `TOTAL VALUE` (donut) → `TOTAL NILAI`; `DISTRIBUTION BY ASSET CLASS` → `DISTRIBUSI PER KELAS ASET`; `Allocation Breakdown` → `Rincian Alokasi`; `WEIGHT / SHARE` → `BOBOT / PORSI`.
-- `investing.html` (rak, `aria-label` sudah Indonesia — OK) — periksa ulang `GESER` (Indonesia, OK).
-- `investing.js` (`CATEGORY_META` subjudul): `Equities` → `Ekuitas`; `Real Estate` → `Real Estat`; `Digital Assets` → `Aset Digital`; `Currency` → `Mata Uang`.
-- Layar detail aset: `Live · update 3 dtk` → mis. `Langsung · tiap 3 dtk`.
-
-*Konfigurasi:*
-
-- `core/config.js` — `INVEST_SUMMARY_LABELS.Kripto`: `Total nilai kriptocurrency` → `Total nilai kripto`.
-
-*Catatan:* identifier (`heroPortfolioBtn`, `.alloc-row`, dst.) sengaja tidak diubah — bukan bahasa game. Brand `Business Tycoon Tap`, kode `USD`, dan format angka bukan pelanggaran.
+*Catatan:* identifier teknis (`heroPortfolioBtn`, `.alloc-panel`, dst.) sengaja tidak diubah karena bukan teks tampilan pemain. Brand `Business Tycoon Tap`, kode `USD`, dan format angka bukan pelanggaran.
 
 ## 6. Pengujian & Kualitas
 
-- `npm run lint` — memverifikasi: `index.html` sinkron dengan sumber generate, JSON valid, SVG `<use>` cocok dengan `<symbol>`, ikon PWA ada, `prefers-reduced-motion` & `:focus-visible` ada, tidak ada magic number di modul non-`core`.
-- `npm test` — smoke test: skema simpan v1→v2, format angka, kalkulasi biaya upgrade, batas offline 2 jam, buy/sell, jumlah 33 aset investasi.
-- CI: `.github/workflows/static.yml` — menjalankan syntax check, `npm run lint`, dan `npm test` pada push/PR ke `main`.
+- `npm run lint` — memverifikasi: `index.html` sinkron dengan template & partial, JSON valid, SVG `<use>` cocok dengan `<symbol>`, ikon PWA tersedia, `prefers-reduced-motion` & `:focus-visible` terpasang pada gabungan CSS (`styles/` + `tabs/`), dan tidak ada angka literal di luar `CONFIG` (`core/config.js`) maupun `ASSETS` (`data/assets.js`).
+- `npm test` — smoke test: skema simpan v1→v2, format angka, kalkulasi biaya upgrade, batas offline 2 jam, transaksi beli/jual aset, dan kelengkapan 33 aset investasi.
+- CI: `.github/workflows/static.yml` — menjalankan cek sintaksis, `npm run lint`, dan `npm test` pada push/PR ke `main`.
+
+## 7. Integrasi Firebase (Persiapan Cloud Save)
+
+- `firebase-applet-config.json` menyimpan konfigurasi proyek Firebase (Autentikasi & Firestore) untuk kebutuhan sinkronisasi awan di tahap pengembangan sistem berikutnya.
+- `firebase-blueprint.json` mendefinisikan struktur dokumen profil privat (`users/{userId}/private/{docId}`) dan cadangan progres (`playerSaves/{userId}`).
+- `firestore.rules` menerapkan aturan keamanan berbasis pemilik terverifikasi (*default-deny* untuk akses lainnya). Sistem permainan saat ini tetap berjalan *offline-first* melalui penyimpanan lokal `localStorage` (`Save Schema v2`).
+
