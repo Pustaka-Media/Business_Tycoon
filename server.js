@@ -25,6 +25,11 @@ app.get('/manifest.webmanifest', (req, res, next) => {
   next();
 });
 
+app.get('/firebase-applet-config.json', (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache');
+  res.sendFile(path.join(__dirname, 'firebase-applet-config.json'));
+});
+
 app.use(express.static(PUBLIC_DIR));
 
 app.use((req, res) => {

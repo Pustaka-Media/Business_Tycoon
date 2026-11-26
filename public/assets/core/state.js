@@ -9,6 +9,7 @@
 import { CONFIG } from './config.js';
 import { ASSETS } from '../data/assets.js';
 import { root } from '../utils/dom.js';
+import { scheduleCloudSaveSync } from './firebase.js';
 
 export const state = {
   version: CONFIG.SAVE_SCHEMA_VERSION,
@@ -163,6 +164,20 @@ export function writeSaveImmediate() {
   } catch (error) {
     // Abaikan jika kuota penyimpanan penuh atau mode privat ketat
   }
+  scheduleCloudSaveSync(getCloudSaveSnapshot);
+}
+
+/**
+ * Mengambil ringkasan progres untuk sinkronisasi cloud save (PlayerSave).
+ */
+export function getCloudSaveSnapshot() {
+  return {
+    balance: state.balance,
+    perClick: state.perClick,
+    perSecond: state.perSecond,
+    totalTaps: state.totalTaps,
+    totalEarned: state.totalEarned
+  };
 }
 
 /**

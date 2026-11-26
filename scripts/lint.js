@@ -85,6 +85,7 @@ const jsFiles = [
   'scripts/build.js',
   'public/assets/utils/dom.js',
   'public/assets/utils/format.js',
+  'public/assets/core/firebase.js',
   'public/assets/core/state.js',
   'public/assets/components/feedback.js',
   'public/assets/components/badges.js',

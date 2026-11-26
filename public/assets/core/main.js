@@ -14,8 +14,10 @@ import {
   calculateOfflineBonus,
   writeSaveImmediate,
   flushSaveState,
-  saveState
+  saveState,
+  getCloudSaveSnapshot
 } from './state.js';
+import { initFirebase, syncPlayerSaveToCloud } from './firebase.js';
 import { setTabBadge } from '../components/badges.js';
 import { checkMilestones } from '../components/milestones.js';
 import { hideModulePreview, renderModulePreview, bindPreviewEvents } from '../components/preview.js';
@@ -415,6 +417,39 @@ function init() {
   startPassiveIncomeLoop();
   startMarketPriceLoop();
   registerServiceWorker();
+  initFirebase(function (cloudSave) {
+    if (cloudSave && typeof cloudSave === 'object') {
+      const cloudEarned = Number(cloudSave.totalEarned);
+      const cloudBalance = Number(cloudSave.balance);
+      const cloudTaps = Number(cloudSave.totalTaps);
+      const cloudClick = Number(cloudSave.perClick);
+      const cloudSecond = Number(cloudSave.perSecond);
+      if (Number.isFinite(cloudEarned) && cloudEarned > state.totalEarned) {
+        if (Number.isFinite(cloudBalance) && cloudBalance >= 0) {
+          state.balance = Math.round(cloudBalance * 100) / 100;
+        }
+        if (Number.isFinite(cloudClick) && cloudClick >= CONFIG.BASE_PER_CLICK) {
+          state.perClick = Math.round(cloudClick * 100) / 100;
+        }
+        if (Number.isFinite(cloudSecond) && cloudSecond >= 0) {
+          state.perSecond = Math.round(cloudSecond * 100) / 100;
+        }
+        if (Number.isFinite(cloudTaps) && cloudTaps >= 0) {
+          state.totalTaps = Math.floor(cloudTaps);
+        }
+        state.totalEarned = Math.round(cloudEarned * 100) / 100;
+        writeSaveImmediate();
+        renderStats();
+        renderUpgrades();
+        renderProfileStats();
+        renderInvestingScreen();
+        return;
+      }
+    }
+    syncPlayerSaveToCloud(getCloudSaveSnapshot()).catch(function () {
+      // Abaikan jika sinkronisasi awal tertunda
+    });
+  });
 }
 
 if (hasDOM) {

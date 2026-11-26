@@ -93,6 +93,48 @@
   color: var(--text-muted-strong);
 }
 
+.profile-account {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+  margin-bottom: 12px;
+  border-top: 1px solid var(--border-light);
+}
+
+.profile-account__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.profile-account__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.profile-account__user {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-muted-strong);
+  word-break: break-word;
+}
+
+.profile-account__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.profile-account__btn {
+  width: 100%;
+  padding: 9px 12px;
+  font-size: 12.5px;
+}
+
+.profile-account__btn[hidden] {
+  display: none;
+}
 
 .danger-btn {
   appearance: none;

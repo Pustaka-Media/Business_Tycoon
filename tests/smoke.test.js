@@ -38,11 +38,12 @@ const mockStorage = createMockStorage();
 globalThis.localStorage = mockStorage;
 
 // Impor dinamis SETELAH mock localStorage terpasang (impor statis dievaluasi lebih dulu)
-const [configMod, assetsMod, formatMod, stateMod, earningsMod, investingMod, profileMod, mainMod] =
+const [configMod, assetsMod, formatMod, firebaseMod, stateMod, earningsMod, investingMod, profileMod, mainMod] =
   await Promise.all([
     import('../public/assets/core/config.js'),
     import('../public/assets/data/assets.js'),
     import('../public/assets/utils/format.js'),
+    import('../public/assets/core/firebase.js'),
     import('../public/assets/core/state.js'),
     import('../public/assets/tabs/earnings/earnings.js'),
     import('../public/assets/tabs/investing/investing.js'),
@@ -54,6 +55,7 @@ const game = Object.assign(
   configMod,
   assetsMod,
   formatMod,
+  firebaseMod,
   stateMod,
   earningsMod,
   investingMod,
@@ -275,4 +277,51 @@ test('buyUpgrade mengurangi saldo, menaikkan perClick/perSecond, dan calculateOf
   const fiveHours = game.calculateOfflineBonus(10, 5 * 3600 * 1000);
   assert.equal(fiveHours.seconds, 7200);
   assert.equal(fiveHours.bonus, 36000);
+});
+
+test('Firebase payload builders mematuhi batas skema firebase-blueprint.json dan firestore.rules', function () {
+  assert.equal(game.isValidFirebaseUserId('user_123-ABC'), true);
+  assert.equal(game.isValidFirebaseUserId('bad/uid'), false);
+  assert.equal(game.isValidFirebaseUserId(''), false);
+
+  const stamp = { _type: 'serverTimestamp' };
+  const profilePayload = game.buildUserPrivatePayload(
+    {
+      uid: 'abc_123',
+      email: 'pemain@example.com',
+      displayName: 'A'.repeat(150)
+    },
+    stamp
+  );
+  assert.equal(profilePayload.uid, 'abc_123');
+  assert.equal(profilePayload.email, 'pemain@example.com');
+  assert.equal(profilePayload.displayName.length, 100);
+  assert.equal(profilePayload.updatedAt, stamp);
+
+  const savePayload = game.buildPlayerSavePayload(
+    'abc_123',
+    {
+      balance: -50,
+      perClick: 12.345,
+      perSecond: 4.5,
+      totalTaps: 99.8,
+      totalEarned: 2500.567
+    },
+    stamp
+  );
+  assert.deepEqual(Object.keys(savePayload).sort(), [
+    'balance',
+    'perClick',
+    'perSecond',
+    'totalEarned',
+    'totalTaps',
+    'updatedAt',
+    'userId',
+    'version'
+  ]);
+  assert.equal(savePayload.version, 2);
+  assert.equal(savePayload.balance, 0);
+  assert.equal(savePayload.perClick, 12.35);
+  assert.equal(savePayload.totalTaps, 99);
+  assert.equal(savePayload.totalEarned, 2500.57);
 });

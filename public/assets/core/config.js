@@ -170,6 +170,15 @@ export const CONFIG = Object.freeze({
     { id: 'earned_100', type: 'earned', threshold: 100, title: 'Total Pendapatan 100' },
     { id: 'earned_1000', type: 'earned', threshold: 1000, title: 'Total Pendapatan 1 rb' },
     { id: 'earned_10000', type: 'earned', threshold: 10000, title: 'Total Pendapatan 10 rb' }
-  ]
+  ],
+  FIREBASE_APP_URL: 'https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js',
+  FIREBASE_AUTH_URL: 'https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js',
+  FIREBASE_FIRESTORE_URL: 'https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js',
+  FIREBASE_CONFIG_PATH: './firebase-applet-config.json',
+  CLOUD_SYNC_THROTTLE_MS: 10000,
+  USER_ID_MAX_LEN: 128,
+  EMAIL_MAX_LEN: 320,
+  DISPLAY_NAME_MAX_LEN: 100,
+  MIN_EMAIL_LEN: 3
 });
 // END_CONFIG

@@ -11,8 +11,9 @@ import {
   formatIntegerID,
   formatDateShort
 } from '../../utils/format.js';
-import { playCoinBlip, triggerHaptic } from '../../components/feedback.js';
+import { playCoinBlip, triggerHaptic, showToast } from '../../components/feedback.js';
 import { setTabBadge } from '../../components/badges.js';
+import { subscribeAuthState, signInWithGoogle, signOutGoogle } from '../../core/firebase.js';
 import {
   renderBankCardIdentity,
   renderStats,
@@ -35,6 +36,9 @@ const cancelResetBtn = getEl('cancel-reset-btn');
 const confirmResetBtn = getEl('confirm-reset-btn');
 const offlineModal = getEl('offline-modal');
 const milestoneToast = getEl('milestone-toast');
+const accountUserLabel = getEl('account-user-label');
+const googleSignInBtn = getEl('google-signin-btn');
+const googleSignOutBtn = getEl('google-signout-btn');
 
 /**
  * Merender statistik dasar & pengaturan preferensi pemain pada tab Profil.
@@ -182,6 +186,52 @@ export function bindProfileEvents() {
     document.addEventListener('keydown', function (event) {
       if (event.key === 'Escape' && !resetModal.hidden) {
         resetModal.hidden = true;
+      }
+    });
+  }
+
+  subscribeAuthState(function (user) {
+    if (accountUserLabel) {
+      if (user) {
+        accountUserLabel.textContent = user.displayName || user.email || 'Akun terhubung';
+      } else {
+        accountUserLabel.textContent = 'Masuk dengan akun Google untuk menyimpan progres permainan.';
+      }
+    }
+    if (googleSignInBtn) {
+      googleSignInBtn.hidden = Boolean(user);
+      googleSignInBtn.disabled = false;
+    }
+    if (googleSignOutBtn) {
+      googleSignOutBtn.hidden = !user;
+      googleSignOutBtn.disabled = false;
+    }
+  });
+
+  if (googleSignInBtn) {
+    googleSignInBtn.addEventListener('click', async function () {
+      googleSignInBtn.disabled = true;
+      try {
+        await signInWithGoogle();
+        showToast('Berhasil masuk dengan akun Google.');
+      } catch (error) {
+        showToast('Gagal masuk ke akun Google. Coba lagi nanti.');
+      } finally {
+        googleSignInBtn.disabled = false;
+      }
+    });
+  }
+
+  if (googleSignOutBtn) {
+    googleSignOutBtn.addEventListener('click', async function () {
+      googleSignOutBtn.disabled = true;
+      try {
+        await signOutGoogle();
+        showToast('Berhasil keluar dari akun.');
+      } catch (error) {
+        showToast('Gagal keluar dari akun.');
+      } finally {
+        googleSignOutBtn.disabled = false;
       }
     });
   }
