@@ -1,5 +1,5 @@
 /* ==========================================================================
-   BUSINESS TYCOON TAP - ASET PASAR (32 instrumen: Saham, Properti, Kripto, Forex)
+   BUSINESS TYCOON TAP - ASET PASAR (75 instrumen: Saham, Properti, Kripto, Forex)
    ========================================================================== */
 
 export const ASSETS = Object.freeze([
@@ -301,7 +301,7 @@ export const ASSETS = Object.freeze([
     unitLabel: 'unit'
   },
 
-  // 3. Kripto (tanpa yield, volatilitas tinggi)
+  // 3. Kripto (tanpa yield, volatilitas tinggi — diurutkan dari koin paling populer)
   {
     id: 'kripto_bitcoin',
     name: 'Bitcoin',
@@ -327,6 +327,42 @@ export const ASSETS = Object.freeze([
     iconId: 'icon-crypto-ethereum'
   },
   {
+    id: 'kripto_tether',
+    name: 'Tether',
+    category: 'Kripto',
+    initialPrice: 16200,
+    volatility: 0.002,
+    yieldRate: 0,
+    color: '#26A17B',
+    symbol: 'USDT',
+    unitLabel: 'koin',
+    iconId: 'icon-crypto-tether'
+  },
+  {
+    id: 'kripto_bnb',
+    name: 'BNB',
+    category: 'Kripto',
+    initialPrice: 10500000,
+    volatility: 0.029,
+    yieldRate: 0,
+    color: '#F3BA2F',
+    symbol: 'BNB',
+    unitLabel: 'koin',
+    iconId: 'icon-crypto-bnb'
+  },
+  {
+    id: 'kripto_ripplex',
+    name: 'RippleX',
+    category: 'Kripto',
+    initialPrice: 9800,
+    volatility: 0.032,
+    yieldRate: 0,
+    color: '#111827',
+    symbol: 'XRP',
+    unitLabel: 'koin',
+    iconId: 'icon-crypto-xrp'
+  },
+  {
     id: 'kripto_solana',
     name: 'Solana',
     category: 'Kripto',
@@ -337,6 +373,30 @@ export const ASSETS = Object.freeze([
     symbol: 'SOL',
     unitLabel: 'koin',
     iconId: 'icon-crypto-solana'
+  },
+  {
+    id: 'kripto_usdc',
+    name: 'USD Coin',
+    category: 'Kripto',
+    initialPrice: 16200,
+    volatility: 0.002,
+    yieldRate: 0,
+    color: '#2775CA',
+    symbol: 'USDC',
+    unitLabel: 'koin',
+    iconId: 'icon-crypto-usdc'
+  },
+  {
+    id: 'kripto_cardano',
+    name: 'Cardano',
+    category: 'Kripto',
+    initialPrice: 13800,
+    volatility: 0.036,
+    yieldRate: 0,
+    color: '#0033AD',
+    symbol: 'ADA',
+    unitLabel: 'koin',
+    iconId: 'icon-crypto-cardano'
   },
   {
     id: 'kripto_dogecoin',
@@ -351,31 +411,307 @@ export const ASSETS = Object.freeze([
     iconId: 'icon-crypto-dogecoin'
   },
   {
-    id: 'kripto_ripplex',
-    name: 'RippleX',
+    id: 'kripto_tron',
+    name: 'TRON',
     category: 'Kripto',
-    initialPrice: 9800,
+    initialPrice: 4050,
     volatility: 0.032,
     yieldRate: 0,
-    color: '#111827',
-    symbol: 'XRP',
+    color: '#EB0029',
+    symbol: 'TRX',
     unitLabel: 'koin',
-    iconId: 'icon-crypto-xrp'
+    iconId: 'icon-crypto-tron'
+  },
+  {
+    id: 'kripto_toncoin',
+    name: 'Toncoin',
+    category: 'Kripto',
+    initialPrice: 89000,
+    volatility: 0.038,
+    yieldRate: 0,
+    color: '#0098EA',
+    symbol: 'TON',
+    unitLabel: 'koin',
+    iconId: 'icon-crypto-toncoin'
+  },
+  {
+    id: 'kripto_avalanche',
+    name: 'Avalanche',
+    category: 'Kripto',
+    initialPrice: 615000,
+    volatility: 0.038,
+    yieldRate: 0,
+    color: '#E84142',
+    symbol: 'AVAX',
+    unitLabel: 'koin',
+    iconId: 'icon-crypto-avalanche'
+  },
+  {
+    id: 'kripto_sui',
+    name: 'Sui',
+    category: 'Kripto',
+    initialPrice: 52000,
+    volatility: 0.042,
+    yieldRate: 0,
+    color: '#4DA2FF',
+    symbol: 'SUI',
+    unitLabel: 'koin',
+    iconId: 'icon-crypto-sui'
+  },
+  {
+    id: 'kripto_chainlink',
+    name: 'Chainlink',
+    category: 'Kripto',
+    initialPrice: 290000,
+    volatility: 0.035,
+    yieldRate: 0,
+    color: '#2A5ADA',
+    symbol: 'LINK',
+    unitLabel: 'koin',
+    iconId: 'icon-crypto-chainlink'
+  },
+  {
+    id: 'kripto_polkadot',
+    name: 'Polkadot',
+    category: 'Kripto',
+    initialPrice: 121500,
+    volatility: 0.036,
+    yieldRate: 0,
+    color: '#E6007A',
+    symbol: 'DOT',
+    unitLabel: 'koin',
+    iconId: 'icon-crypto-polkadot'
+  },
+  {
+    id: 'kripto_bitcoincash',
+    name: 'Bitcoin Cash',
+    category: 'Kripto',
+    initialPrice: 7800000,
+    volatility: 0.033,
+    yieldRate: 0,
+    color: '#0AC18E',
+    symbol: 'BCH',
+    unitLabel: 'koin',
+    iconId: 'icon-crypto-bitcoincash'
+  },
+  {
+    id: 'kripto_stellar',
+    name: 'Stellar',
+    category: 'Kripto',
+    initialPrice: 5670,
+    volatility: 0.037,
+    yieldRate: 0,
+    color: '#0F172A',
+    symbol: 'XLM',
+    unitLabel: 'koin',
+    iconId: 'icon-crypto-stellar'
+  },
+  {
+    id: 'kripto_litecoin',
+    name: 'Litecoin',
+    category: 'Kripto',
+    initialPrice: 1700000,
+    volatility: 0.031,
+    yieldRate: 0,
+    color: '#345D9D',
+    symbol: 'LTC',
+    unitLabel: 'koin',
+    iconId: 'icon-crypto-litecoin'
+  },
+  {
+    id: 'kripto_hbar',
+    name: 'Hedera',
+    category: 'Kripto',
+    initialPrice: 4860,
+    volatility: 0.038,
+    yieldRate: 0,
+    color: '#111827',
+    symbol: 'HBAR',
+    unitLabel: 'koin',
+    iconId: 'icon-crypto-hbar'
+  },
+  {
+    id: 'kripto_uniswap',
+    name: 'Uniswap',
+    category: 'Kripto',
+    initialPrice: 210000,
+    volatility: 0.036,
+    yieldRate: 0,
+    color: '#FF007A',
+    symbol: 'UNI',
+    unitLabel: 'koin',
+    iconId: 'icon-crypto-uniswap'
+  },
+  {
+    id: 'kripto_near',
+    name: 'NEAR Protocol',
+    category: 'Kripto',
+    initialPrice: 92000,
+    volatility: 0.039,
+    yieldRate: 0,
+    color: '#00EC97',
+    symbol: 'NEAR',
+    unitLabel: 'koin',
+    iconId: 'icon-crypto-near'
+  },
+  {
+    id: 'kripto_aptos',
+    name: 'Aptos',
+    category: 'Kripto',
+    initialPrice: 165000,
+    volatility: 0.041,
+    yieldRate: 0,
+    color: '#111827',
+    symbol: 'APT',
+    unitLabel: 'koin',
+    iconId: 'icon-crypto-aptos'
+  },
+  {
+    id: 'kripto_icp',
+    name: 'Internet Computer',
+    category: 'Kripto',
+    initialPrice: 198000,
+    volatility: 0.038,
+    yieldRate: 0,
+    color: '#1B1E2B',
+    symbol: 'ICP',
+    unitLabel: 'koin',
+    iconId: 'icon-crypto-icp'
+  },
+  {
+    id: 'kripto_polygon',
+    name: 'Polygon',
+    category: 'Kripto',
+    initialPrice: 8900,
+    volatility: 0.039,
+    yieldRate: 0,
+    color: '#8247E5',
+    symbol: 'POL',
+    unitLabel: 'koin',
+    iconId: 'icon-crypto-polygon'
+  },
+  {
+    id: 'kripto_etc',
+    name: 'Ethereum Classic',
+    category: 'Kripto',
+    initialPrice: 485000,
+    volatility: 0.034,
+    yieldRate: 0,
+    color: '#328332',
+    symbol: 'ETC',
+    unitLabel: 'koin',
+    iconId: 'icon-crypto-etc'
+  },
+  {
+    id: 'kripto_vechain',
+    name: 'VeChain',
+    category: 'Kripto',
+    initialPrice: 780,
+    volatility: 0.038,
+    yieldRate: 0,
+    color: '#15BDFF',
+    symbol: 'VET',
+    unitLabel: 'koin',
+    iconId: 'icon-crypto-vechain'
+  },
+  {
+    id: 'kripto_monero',
+    name: 'Monero',
+    category: 'Kripto',
+    initialPrice: 3160000,
+    volatility: 0.030,
+    yieldRate: 0,
+    color: '#FF6600',
+    symbol: 'XMR',
+    unitLabel: 'koin',
+    iconId: 'icon-crypto-monero'
+  },
+  {
+    id: 'kripto_cosmos',
+    name: 'Cosmos',
+    category: 'Kripto',
+    initialPrice: 125000,
+    volatility: 0.036,
+    yieldRate: 0,
+    color: '#2E3148',
+    symbol: 'ATOM',
+    unitLabel: 'koin',
+    iconId: 'icon-crypto-cosmos'
+  },
+  {
+    id: 'kripto_aave',
+    name: 'Aave',
+    category: 'Kripto',
+    initialPrice: 4450000,
+    volatility: 0.037,
+    yieldRate: 0,
+    color: '#B6509E',
+    symbol: 'AAVE',
+    unitLabel: 'koin',
+    iconId: 'icon-crypto-aave'
+  },
+  {
+    id: 'kripto_arbitrum',
+    name: 'Arbitrum',
+    category: 'Kripto',
+    initialPrice: 14600,
+    volatility: 0.041,
+    yieldRate: 0,
+    color: '#213147',
+    symbol: 'ARB',
+    unitLabel: 'koin',
+    iconId: 'icon-crypto-arbitrum'
+  },
+  {
+    id: 'kripto_algorand',
+    name: 'Algorand',
+    category: 'Kripto',
+    initialPrice: 5400,
+    volatility: 0.039,
+    yieldRate: 0,
+    color: '#111827',
+    symbol: 'ALGO',
+    unitLabel: 'koin',
+    iconId: 'icon-crypto-algorand'
+  },
+  {
+    id: 'kripto_filecoin',
+    name: 'Filecoin',
+    category: 'Kripto',
+    initialPrice: 89000,
+    volatility: 0.040,
+    yieldRate: 0,
+    color: '#0090FF',
+    symbol: 'FIL',
+    unitLabel: 'koin',
+    iconId: 'icon-crypto-filecoin'
+  },
+  {
+    id: 'kripto_optimism',
+    name: 'Optimism',
+    category: 'Kripto',
+    initialPrice: 31500,
+    volatility: 0.041,
+    yieldRate: 0,
+    color: '#FF0420',
+    symbol: 'OP',
+    unitLabel: 'koin',
+    iconId: 'icon-crypto-optimism'
+  },
+  {
+    id: 'kripto_zcash',
+    name: 'Zcash',
+    category: 'Kripto',
+    initialPrice: 890000,
+    volatility: 0.035,
+    yieldRate: 0,
+    color: '#F4B728',
+    symbol: 'ZEC',
+    unitLabel: 'koin',
+    iconId: 'icon-crypto-zcash'
   },
 
-  // 4. Forex (tanpa yield, volatilitas rendah)
-  {
-    id: 'forex_usd_idr',
-    name: 'USD/IDR',
-    category: 'Forex',
-    initialPrice: 16200,
-    volatility: 0.002,
-    yieldRate: 0,
-    color: '#15803D',
-    symbol: 'USD',
-    unitLabel: 'lot',
-    iconId: 'icon-forex-usdidr'
-  },
+  // 4. Forex (tanpa yield, volatilitas rendah — diurutkan dari pasangan utama terpopuler)
   {
     id: 'forex_eur_usd',
     name: 'EUR/USD',
@@ -387,6 +723,18 @@ export const ASSETS = Object.freeze([
     symbol: 'EUR',
     unitLabel: 'lot',
     iconId: 'icon-forex-eurusd'
+  },
+  {
+    id: 'forex_usd_idr',
+    name: 'USD/IDR',
+    category: 'Forex',
+    initialPrice: 16200,
+    volatility: 0.002,
+    yieldRate: 0,
+    color: '#15803D',
+    symbol: 'USD',
+    unitLabel: 'lot',
+    iconId: 'icon-forex-usdidr'
   },
   {
     id: 'forex_gbp_usd',
@@ -411,5 +759,173 @@ export const ASSETS = Object.freeze([
     symbol: 'JPY',
     unitLabel: 'lot',
     iconId: 'icon-forex-jpyusd'
+  },
+  {
+    id: 'forex_aud_usd',
+    name: 'AUD/USD',
+    category: 'Forex',
+    initialPrice: 10500,
+    volatility: 0.0025,
+    yieldRate: 0,
+    color: '#0D9488',
+    symbol: 'AUD',
+    unitLabel: 'lot',
+    iconId: 'icon-forex-audusd'
+  },
+  {
+    id: 'forex_usd_cad',
+    name: 'USD/CAD',
+    category: 'Forex',
+    initialPrice: 11550,
+    volatility: 0.0022,
+    yieldRate: 0,
+    color: '#E11D48',
+    symbol: 'CAD',
+    unitLabel: 'lot',
+    iconId: 'icon-forex-usdcad'
+  },
+  {
+    id: 'forex_usd_chf',
+    name: 'USD/CHF',
+    category: 'Forex',
+    initialPrice: 18350,
+    volatility: 0.0022,
+    yieldRate: 0,
+    color: '#B91C1C',
+    symbol: 'CHF',
+    unitLabel: 'lot',
+    iconId: 'icon-forex-usdchf'
+  },
+  {
+    id: 'forex_nzd_usd',
+    name: 'NZD/USD',
+    category: 'Forex',
+    initialPrice: 9550,
+    volatility: 0.0028,
+    yieldRate: 0,
+    color: '#0284C7',
+    symbol: 'NZD',
+    unitLabel: 'lot',
+    iconId: 'icon-forex-nzdusd'
+  },
+  {
+    id: 'forex_usd_sgd',
+    name: 'USD/SGD',
+    category: 'Forex',
+    initialPrice: 12050,
+    volatility: 0.0018,
+    yieldRate: 0,
+    color: '#059669',
+    symbol: 'SGD',
+    unitLabel: 'lot',
+    iconId: 'icon-forex-usdsgd'
+  },
+  {
+    id: 'forex_usd_cny',
+    name: 'USD/CNY',
+    category: 'Forex',
+    initialPrice: 2240,
+    volatility: 0.0016,
+    yieldRate: 0,
+    color: '#D97706',
+    symbol: 'CNY',
+    unitLabel: 'lot',
+    iconId: 'icon-forex-usdcny'
+  },
+  {
+    id: 'forex_usd_krw',
+    name: 'USD/KRW',
+    category: 'Forex',
+    initialPrice: 116,
+    volatility: 0.0020,
+    yieldRate: 0,
+    color: '#1E40AF',
+    symbol: 'KRW',
+    unitLabel: 'lot',
+    iconId: 'icon-forex-usdkrw'
+  },
+  {
+    id: 'forex_usd_inr',
+    name: 'USD/INR',
+    category: 'Forex',
+    initialPrice: 192,
+    volatility: 0.0018,
+    yieldRate: 0,
+    color: '#EA580C',
+    symbol: 'INR',
+    unitLabel: 'lot',
+    iconId: 'icon-forex-usdinr'
+  },
+  {
+    id: 'forex_usd_thb',
+    name: 'USD/THB',
+    category: 'Forex',
+    initialPrice: 470,
+    volatility: 0.0020,
+    yieldRate: 0,
+    color: '#6D28D9',
+    symbol: 'THB',
+    unitLabel: 'lot',
+    iconId: 'icon-forex-usdthb'
+  },
+  {
+    id: 'forex_usd_myr',
+    name: 'USD/MYR',
+    category: 'Forex',
+    initialPrice: 3640,
+    volatility: 0.0020,
+    yieldRate: 0,
+    color: '#0F766E',
+    symbol: 'MYR',
+    unitLabel: 'lot',
+    iconId: 'icon-forex-usdmyr'
+  },
+  {
+    id: 'forex_eur_gbp',
+    name: 'EUR/GBP',
+    category: 'Forex',
+    initialPrice: 13750,
+    volatility: 0.0020,
+    yieldRate: 0,
+    color: '#4338CA',
+    symbol: 'EUR/GBP',
+    unitLabel: 'lot',
+    iconId: 'icon-forex-eurgbp'
+  },
+  {
+    id: 'forex_eur_jpy',
+    name: 'EUR/JPY',
+    category: 'Forex',
+    initialPrice: 17200,
+    volatility: 0.0028,
+    yieldRate: 0,
+    color: '#0369A1',
+    symbol: 'EUR/JPY',
+    unitLabel: 'lot',
+    iconId: 'icon-forex-eurjpy'
+  },
+  {
+    id: 'forex_gbp_jpy',
+    name: 'GBP/JPY',
+    category: 'Forex',
+    initialPrice: 20250,
+    volatility: 0.0032,
+    yieldRate: 0,
+    color: '#9333EA',
+    symbol: 'GBP/JPY',
+    unitLabel: 'lot',
+    iconId: 'icon-forex-gbpjpy'
+  },
+  {
+    id: 'forex_aud_jpy',
+    name: 'AUD/JPY',
+    category: 'Forex',
+    initialPrice: 10350,
+    volatility: 0.0030,
+    yieldRate: 0,
+    color: '#BE185D',
+    symbol: 'AUD/JPY',
+    unitLabel: 'lot',
+    iconId: 'icon-forex-audjpy'
   }
 ]);
