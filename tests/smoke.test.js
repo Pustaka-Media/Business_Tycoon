@@ -38,7 +38,7 @@ const mockStorage = createMockStorage();
 globalThis.localStorage = mockStorage;
 
 // Impor dinamis SETELAH mock localStorage terpasang (impor statis dievaluasi lebih dulu)
-const [configMod, assetsMod, formatMod, firebaseMod, stateMod, earningsMod, investingMod, profileMod, mainMod] =
+const [configMod, assetsMod, formatMod, firebaseMod, stateMod, earningsMod, detailChartMod, investingMod, profileMod, mainMod] =
   await Promise.all([
     import('../public/assets/core/config.js'),
     import('../public/assets/data/assets.js'),
@@ -46,6 +46,7 @@ const [configMod, assetsMod, formatMod, firebaseMod, stateMod, earningsMod, inve
     import('../public/assets/core/firebase.js'),
     import('../public/assets/core/state.js'),
     import('../public/assets/tabs/earnings/earnings.js'),
+    import('../public/assets/tabs/investing/detail-chart.js'),
     import('../public/assets/tabs/investing/investing.js'),
     import('../public/assets/tabs/profile/profile.js'),
     import('../public/assets/core/main.js')
@@ -58,6 +59,7 @@ const game = Object.assign(
   firebaseMod,
   stateMod,
   earningsMod,
+  detailChartMod,
   investingMod,
   profileMod,
   mainMod
@@ -390,3 +392,69 @@ test('Firebase payload builders & cloud portfolio restore mematuhi skema firebas
   assert.equal(game.state.milestones.taps_100, true);
   assert.equal(game.state.settings.sound, false);
 });
+
+test('detail-chart: sliceTimeframePoints, smoothPriceSeries, computeSessionStats, candlestick, dan kurva Catmull-Rom', function () {
+  const samplePoints = [];
+  for (let i = 0; i < 60; i += 1) {
+    samplePoints.push({
+      ts: 1700000000000 + i * 3000,
+      price: i % 2 === 0 ? 150 + i * 0.2 : 146 + i * 0.2
+    });
+  }
+
+  // Timeframe slicing sesuai konfigurasi
+  assert.equal(game.sliceTimeframePoints(samplePoints, '30d').length, 12);
+  assert.equal(game.sliceTimeframePoints(samplePoints, '1m').length, 20);
+  assert.equal(game.sliceTimeframePoints(samplePoints, '2m').length, 40);
+  assert.equal(game.sliceTimeframePoints(samplePoints, 'all').length, 60);
+
+  // Smoothing menjaga tepat titik awal & harga terakhir sambil meredam lonjakan zig-zag interior
+  const rawSeries = samplePoints.map(function (pt) {
+    return pt.price;
+  });
+  const smoothed = game.smoothPriceSeries(rawSeries, 2);
+  assert.equal(smoothed.length, rawSeries.length);
+  assert.equal(smoothed[0], rawSeries[0]);
+  assert.equal(smoothed[smoothed.length - 1], rawSeries[rawSeries.length - 1]);
+
+  let rawDiffSum = 0;
+  let smoothDiffSum = 0;
+  for (let i = 1; i < rawSeries.length; i += 1) {
+    rawDiffSum += Math.abs(rawSeries[i] - rawSeries[i - 1]);
+    smoothDiffSum += Math.abs(smoothed[i] - smoothed[i - 1]);
+  }
+  assert.ok(smoothDiffSum < rawDiffSum, 'Total variasi garis halus harus lebih kecil dari data mentah');
+
+  // Statistik sesi
+  const stats = game.computeSessionStats(
+    samplePoints.slice(-12),
+    samplePoints,
+    { initialPrice: 150 }
+  );
+  assert.equal(stats.open, samplePoints[48].price);
+  assert.equal(stats.close, samplePoints[59].price);
+  assert.ok(stats.high >= stats.low);
+  assert.ok(stats.sessionHigh >= stats.high);
+  assert.ok(stats.sessionLow <= stats.low);
+
+  // Lilin OHLC
+  const candles = game.buildCandlestickBuckets(samplePoints, 3);
+  assert.equal(candles.length, 20);
+  candles.forEach(function (c) {
+    assert.ok(c.high >= Math.max(c.open, c.close));
+    assert.ok(c.low <= Math.min(c.open, c.close));
+  });
+
+  // Segmen Catmull-Rom
+  const coords = [
+    { x: 10, y: 100 },
+    { x: 60, y: 70 },
+    { x: 110, y: 90 },
+    { x: 160, y: 40 }
+  ];
+  const segments = game.buildCatmullRomSegments(coords);
+  assert.equal(segments.length, coords.length - 1);
+  assert.equal(segments[segments.length - 1].endX, 160);
+  assert.equal(segments[segments.length - 1].endY, 40);
+});
+

@@ -144,6 +144,14 @@ export function formatTimeHHMM(timestamp) {
   return hh + ':' + mm;
 }
 
+export function formatTimeHHMMSS(timestamp) {
+  const d = new Date(Number.isFinite(timestamp) ? timestamp : Date.now());
+  const hh = String(d.getHours()).padStart(CONFIG.DATE_PAD_LENGTH, '0');
+  const mm = String(d.getMinutes()).padStart(CONFIG.DATE_PAD_LENGTH, '0');
+  const ss = String(d.getSeconds()).padStart(CONFIG.DATE_PAD_LENGTH, '0');
+  return hh + ':' + mm + ':' + ss;
+}
+
 /**
  * Menghitung jumlah unit beli & jual berdasarkan chip aktif ('1', '10', '100', 'max').
  */

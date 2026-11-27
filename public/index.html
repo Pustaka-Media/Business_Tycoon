@@ -71,6 +71,25 @@
     <symbol id="icon-chevron-right" viewBox="0 0 24 24" fill="none">
       <path d="M9.5 6.5L15 12L9.5 17.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
     </symbol>
+    <symbol id="icon-chevron-down" viewBox="0 0 24 24" fill="none">
+      <path d="M6.5 9.5L12 15L17.5 9.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+    </symbol>
+    <symbol id="icon-star" viewBox="0 0 24 24" fill="none">
+      <path d="M12 3.2L14.65 8.58L20.58 9.44L16.29 13.62L17.3 19.53L12 16.74L6.7 19.53L7.71 13.62L3.42 9.44L9.35 8.58L12 3.2Z" fill="var(--star-fill, none)" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" />
+    </symbol>
+    <symbol id="icon-chart-candle" viewBox="0 0 24 24" fill="none">
+      <path d="M7 4V20M12 5.5V18.5M17 3.5V19.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+      <rect x="5.2" y="7.5" width="3.6" height="7" rx="1" fill="currentColor" />
+      <rect x="10.2" y="9" width="3.6" height="5.5" rx="1" fill="currentColor" />
+      <rect x="15.2" y="6.5" width="3.6" height="8" rx="1" fill="currentColor" />
+    </symbol>
+    <symbol id="icon-chart-line" viewBox="0 0 24 24" fill="none">
+      <path d="M4.5 16L9.2 11.2L13.6 13.8L19.5 7.8" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" />
+      <circle cx="4.5" cy="16" r="1.6" fill="currentColor" />
+      <circle cx="9.2" cy="11.2" r="1.6" fill="currentColor" />
+      <circle cx="13.6" cy="13.8" r="1.6" fill="currentColor" />
+      <circle cx="19.5" cy="7.8" r="1.6" fill="currentColor" />
+    </symbol>
 
     <!-- Logo emiten saham (merek nyata, disederhanakan sebagai vektor) -->
     <symbol id="icon-stock-amazon" viewBox="0 0 512 512">
@@ -1414,15 +1433,15 @@
 
         <!-- DAFTAR VERTIKAL ASET PER KATEGORI -->
         <section class="shelf" data-shelf="Saham" aria-label="Daftar aset Saham">
-          <div class="shelf__track" id="shelf-track-Saham" role="list" aria-label="Daftar vertikal aset Saham"></div>
+          <div class="shelf__track" id="shelf-track-Saham"></div>
         </section>
 
         <section class="shelf" data-shelf="Kripto" aria-label="Daftar aset Kripto" hidden>
-          <div class="shelf__track" id="shelf-track-Kripto" role="list" aria-label="Daftar vertikal aset Kripto"></div>
+          <div class="shelf__track" id="shelf-track-Kripto"></div>
         </section>
 
         <section class="shelf" data-shelf="Forex" aria-label="Daftar aset Forex" hidden>
-          <div class="shelf__track" id="shelf-track-Forex" role="list" aria-label="Daftar vertikal aset Forex"></div>
+          <div class="shelf__track" id="shelf-track-Forex"></div>
         </section>
       </div>
     </section>
@@ -1430,7 +1449,7 @@
     <!-- ==================== LAYAR DAFTAR PRODUK DIMILIKI ==================== -->
     <section class="screen" id="investing-owned-screen" aria-label="Daftar Produk Dimiliki" hidden>
       <div class="category-body" id="owned-body">
-        <div class="shelf__track" id="owned-list-track" role="list" aria-label="Daftar produk dimiliki"></div>
+        <div class="shelf__track" id="owned-list-track"></div>
         <div class="category-empty" id="owned-empty-state" hidden>
           <p class="category-empty__text" id="owned-empty-text">Belum ada produk investasi yang dibeli di kategori ini.</p>
           <button type="button" class="category-empty__btn" id="owned-empty-cta-btn">Pilih Produk</button>
@@ -1451,30 +1470,219 @@
             <use href="#icon-arrow-left"></use>
           </svg>
         </button>
-        <div class="detail-header__info">
-          <h1 class="detail-header__title" id="detail-asset-name">Aset</h1>
-          <span class="detail-header__subtitle" id="detail-asset-category">Saham</span>
-        </div>
-        <div class="detail-header__wallet">
-          <span class="detail-header__wallet-label">Saldo</span>
-          <strong class="detail-header__wallet-value" id="detail-wallet-balance">Rp0,00</strong>
-        </div>
+        <div class="detail-header__spacer"></div>
+        <button
+          type="button"
+          class="detail-star-btn"
+          id="detail-watchlist-btn"
+          aria-label="Tandai aset favorit"
+          aria-pressed="false"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <use href="#icon-star"></use>
+          </svg>
+        </button>
       </header>
 
       <div class="detail-body" id="detail-body">
-        <div class="detail-price-box">
-          <div class="detail-price-box__main">
-            <div class="detail-price-box__current" id="detail-market-price-hero">Rp0,00</div>
-            <span class="detail-price-box__live">Langsung · tiap 3 dtk</span>
+        <div class="detail-hero">
+          <div class="detail-hero__identity">
+            <span class="detail-asset-avatar" id="detail-asset-avatar" aria-hidden="true"></span>
+            <div class="detail-hero__titles">
+              <div class="detail-hero__symbol-row">
+                <h1 class="detail-hero__symbol" id="detail-asset-symbol">NVDA</h1>
+                <span class="detail-hero__category-text" id="detail-asset-category">Saham</span>
+              </div>
+              <span class="detail-hero__name" id="detail-asset-name">Nvidia</span>
+            </div>
           </div>
-          <div class="detail-price-box__change pnl--positive" id="detail-price-change">+0,00%</div>
+          <div class="detail-hero__price-col">
+            <div class="detail-hero__price-line">
+              <span class="detail-hero__session-tag">Pasar</span>
+              <strong class="detail-price-box__current" id="detail-market-price-hero">$0.00</strong>
+            </div>
+            <div class="detail-price-box__change pnl--positive" id="detail-price-change">▲ $0.00 (+0,00%)</div>
+          </div>
+        </div>
+
+        <div class="detail-meta-strip">
+          <div class="detail-meta-strip__left">
+            <span class="detail-meta-strip__label">Harga Awal</span>
+            <span class="detail-meta-strip__dot" aria-hidden="true">&middot;</span>
+            <strong class="detail-meta-strip__ref" id="detail-open-ref">$0.00</strong>
+            <span class="detail-meta-strip__delta pnl--positive" id="detail-session-delta">+0,00%</span>
+          </div>
+          <span class="detail-meta-strip__time" id="detail-last-update">Pembaruan --:--</span>
+        </div>
+
+        <div class="detail-stats-drawer" id="detail-stats-drawer">
+          <button
+            type="button"
+            class="detail-stats-drawer__toggle"
+            id="detail-stats-toggle"
+            aria-expanded="false"
+            aria-controls="detail-stats-extra"
+          >
+            <span class="detail-stats-drawer__summary">
+              <span>Buka: <strong id="detail-stat-open">$0.00</strong></span>
+              <span>Tertinggi: <strong id="detail-stat-high">$0.00</strong></span>
+              <span>Terendah: <strong id="detail-stat-low">$0.00</strong></span>
+            </span>
+            <span class="detail-stats-drawer__chevron" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <use href="#icon-chevron-down"></use>
+              </svg>
+            </span>
+          </button>
+          <div class="detail-stats-drawer__extra" id="detail-stats-extra" hidden>
+            <div class="detail-stats-drawer__item">
+              <span class="detail-stats-drawer__k">Tertinggi Sesi</span>
+              <strong class="detail-stats-drawer__v" id="detail-stat-session-high">$0.00</strong>
+            </div>
+            <div class="detail-stats-drawer__item">
+              <span class="detail-stats-drawer__k">Terendah Sesi</span>
+              <strong class="detail-stats-drawer__v" id="detail-stat-session-low">$0.00</strong>
+            </div>
+            <div class="detail-stats-drawer__item">
+              <span class="detail-stats-drawer__k">Dividen / Jam</span>
+              <strong class="detail-stats-drawer__v" id="detail-stat-yield-rate">0,00%</strong>
+            </div>
+            <div class="detail-stats-drawer__item">
+              <span class="detail-stats-drawer__k">Volatilitas</span>
+              <strong class="detail-stats-drawer__v" id="detail-stat-volatility">0,00%</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-chart-toolbar">
+          <div class="detail-timeframe-group" role="group" aria-label="Pilih rentang waktu grafik">
+            <button type="button" class="timeframe-btn" data-timeframe="30d" aria-pressed="false">30d</button>
+            <button type="button" class="timeframe-btn" data-timeframe="1m" aria-pressed="false">1m</button>
+            <button type="button" class="timeframe-btn" data-timeframe="2m" aria-pressed="false">2m</button>
+            <button type="button" class="timeframe-btn" data-timeframe="3m" aria-pressed="false">3m</button>
+            <button type="button" class="timeframe-btn timeframe-btn--active" data-timeframe="all" aria-pressed="true">Semua</button>
+          </div>
+          <div class="detail-chart-mode" role="group" aria-label="Pilih tipe grafik">
+            <button
+              type="button"
+              class="chart-mode-btn"
+              data-chart-mode="candle"
+              aria-label="Tampilan grafik batang lilin"
+              aria-pressed="false"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <use href="#icon-chart-candle"></use>
+              </svg>
+            </button>
+            <button
+              type="button"
+              class="chart-mode-btn chart-mode-btn--active"
+              data-chart-mode="line"
+              aria-label="Tampilan grafik kurva halus"
+              aria-pressed="true"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <use href="#icon-chart-line"></use>
+              </svg>
+            </button>
+          </div>
         </div>
 
         <div class="detail-chart-card" id="detail-chart-card">
+          <div class="detail-chart-tooltip" id="detail-chart-tooltip" hidden></div>
           <canvas id="asset-price-canvas" class="detail-chart-canvas" aria-label="Grafik riwayat harga aset"></canvas>
         </div>
 
-        <div class="detail-trade-card" id="detail-trade-card">
+        <div class="detail-subtabs" role="tablist" aria-label="Detail informasi aset">
+          <button type="button" class="detail-subtab detail-subtab--active" role="tab" data-detail-tab="summary" aria-selected="true">Ringkasan</button>
+          <button type="button" class="detail-subtab" role="tab" data-detail-tab="holdings" aria-selected="false">Kepemilikan</button>
+          <button type="button" class="detail-subtab" role="tab" data-detail-tab="stats" aria-selected="false">Statistik</button>
+        </div>
+
+        <div class="detail-panels">
+          <div class="detail-panel" id="detail-panel-summary" role="tabpanel">
+            <dl class="detail-stats-list">
+              <div class="detail-stats-list__row">
+                <dt>Saldo dompet</dt>
+                <dd id="detail-wallet-balance">$0.00</dd>
+              </div>
+              <div class="detail-stats-list__row">
+                <dt>Posisi dimiliki</dt>
+                <dd id="detail-summary-owned">0 lembar</dd>
+              </div>
+              <div class="detail-stats-list__row">
+                <dt>Nilai posisi</dt>
+                <dd id="detail-summary-value">$0.00</dd>
+              </div>
+              <div class="detail-stats-list__row">
+                <dt>Untung / rugi</dt>
+                <dd id="detail-summary-pnl" class="pnl--positive">$0.00 (+0,00%)</dd>
+              </div>
+            </dl>
+          </div>
+
+          <div class="detail-panel" id="detail-panel-holdings" role="tabpanel" hidden>
+            <dl class="detail-stats-list">
+              <div class="detail-stats-list__row">
+                <dt>Dimiliki</dt>
+                <dd id="detail-owned-units">0 lembar</dd>
+              </div>
+              <div class="detail-stats-list__row">
+                <dt>Harga pasar</dt>
+                <dd id="detail-market-price">$0.00</dd>
+              </div>
+              <div class="detail-stats-list__row">
+                <dt>Harga rata-rata beli</dt>
+                <dd id="detail-avg-entry">—</dd>
+              </div>
+              <div class="detail-stats-list__row">
+                <dt>Nilai pasar</dt>
+                <dd id="detail-market-value">$0.00</dd>
+              </div>
+              <div class="detail-stats-list__row">
+                <dt>Total biaya</dt>
+                <dd id="detail-total-cost">$0.00</dd>
+              </div>
+              <div class="detail-stats-list__row">
+                <dt>Untung / rugi belum terealisasi</dt>
+                <dd id="detail-unrealized-pnl" class="pnl--positive">$0.00 (+0,00%)</dd>
+              </div>
+              <div class="detail-stats-list__row" id="detail-yield-row">
+                <dt>Pendapatan</dt>
+                <dd id="detail-hourly-yield">$0.00/jam</dd>
+              </div>
+            </dl>
+          </div>
+
+          <div class="detail-panel" id="detail-panel-stats" role="tabpanel" hidden>
+            <dl class="detail-stats-list">
+              <div class="detail-stats-list__row">
+                <dt>Kategori aset</dt>
+                <dd id="detail-stat-tab-category">Saham</dd>
+              </div>
+              <div class="detail-stats-list__row">
+                <dt>Kode instrumen</dt>
+                <dd id="detail-stat-tab-symbol">NVDA</dd>
+              </div>
+              <div class="detail-stats-list__row">
+                <dt>Harga pembukaan dasar</dt>
+                <dd id="detail-stat-tab-initial">$0.00</dd>
+              </div>
+              <div class="detail-stats-list__row">
+                <dt>Tingkat volatilitas</dt>
+                <dd id="detail-stat-tab-volatility">0,00%</dd>
+              </div>
+              <div class="detail-stats-list__row">
+                <dt>Imbal hasil pasif</dt>
+                <dd id="detail-stat-tab-yield">0,00%/jam</dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+      </div>
+
+      <footer class="detail-trade-dock" id="detail-trade-card">
+        <div class="detail-trade-dock__top">
           <div class="detail-qty-row" role="group" aria-label="Pilih jumlah unit transaksi">
             <button type="button" class="qty-chip qty-chip--active" data-trade-qty="1" aria-pressed="true">1</button>
             <button type="button" class="qty-chip" data-trade-qty="10" aria-pressed="false">10</button>
@@ -1482,46 +1690,12 @@
             <button type="button" class="qty-chip" data-trade-qty="max" aria-pressed="false">Maks</button>
           </div>
           <div class="detail-trade-notice" id="detail-trade-notice" aria-live="polite"></div>
-          <div class="detail-trade-actions">
-            <button type="button" class="trade-btn trade-btn--sell" id="detail-sell-btn" disabled>JUAL</button>
-            <button type="button" class="trade-btn trade-btn--buy" id="detail-buy-btn">BELI</button>
-          </div>
         </div>
-
-        <div class="detail-stats-card">
-          <h2 class="detail-stats-card__heading">Rincian Kepemilikan</h2>
-          <dl class="detail-stats-list">
-            <div class="detail-stats-list__row">
-              <dt>Dimiliki</dt>
-              <dd id="detail-owned-units">0 lembar</dd>
-            </div>
-            <div class="detail-stats-list__row">
-              <dt>Harga pasar</dt>
-              <dd id="detail-market-price">Rp0,00</dd>
-            </div>
-            <div class="detail-stats-list__row">
-              <dt>Harga rata-rata beli</dt>
-              <dd id="detail-avg-entry">—</dd>
-            </div>
-            <div class="detail-stats-list__row">
-              <dt>Nilai pasar</dt>
-              <dd id="detail-market-value">Rp0,00</dd>
-            </div>
-            <div class="detail-stats-list__row">
-              <dt>Total biaya</dt>
-              <dd id="detail-total-cost">Rp0,00</dd>
-            </div>
-            <div class="detail-stats-list__row">
-              <dt>Untung / rugi belum terealisasi</dt>
-              <dd id="detail-unrealized-pnl" class="pnl--positive">Rp0,00 (+0,00%)</dd>
-            </div>
-            <div class="detail-stats-list__row" id="detail-yield-row">
-              <dt>Pendapatan</dt>
-              <dd id="detail-hourly-yield">Rp0,00/jam</dd>
-            </div>
-          </dl>
+        <div class="detail-trade-actions">
+          <button type="button" class="trade-btn trade-btn--sell" id="detail-sell-btn" disabled>Jual</button>
+          <button type="button" class="trade-btn trade-btn--buy" id="detail-buy-btn">Beli</button>
         </div>
-      </div>
+      </footer>
     </section>
     <!-- ==================== DASHBOARD USAHA ==================== -->
     <section class="screen business-screen" id="business-screen" aria-label="Dashboard Usaha" hidden>
