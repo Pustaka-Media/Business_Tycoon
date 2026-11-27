@@ -2,7 +2,6 @@
 
 Simulasi bisnis ketuk layar *mobile-first* — **HTML5 + CSS3 + Vanilla JavaScript (ES Modules)**, **PWA** dengan mode luring, tanpa *framework* dan tanpa *dependency* runtime.
 
-- **Produksi:** https://business-tycoon-tap.vercel.app
 - **Lisensi:** [MIT](./LICENSE)
 
 > **💱 Mata uang:** mata uang yang berlaku di game ini saat ini adalah **USD** (simbol `$`). Semua tampilan nominal (saldo, pendapatan, biaya upgrade, harga aset) dirender dengan awalan `$`. Helper `formatRupiahFull`/`formatRupiahCompact` di `utils/format.js` masih tersedia tetapi **tidak dipakai untuk tampilan utama** — jangan menampilkan `Rp` pada fitur atau label baru. Beberapa teks lama di tab Usaha masih menampilkan `Rp189 T` (placeholder, akan diseragamkan ke USD kemudian). Keputusan memakai USD ini bersifat sementara sampai ada keputusan resmi.
