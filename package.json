@@ -3,7 +3,6 @@
   "version": "2.0.0",
   "description": "Simulasi bisnis ketuk layar mobile-first berbasis web (HTML, CSS, Vanilla JS, PWA).",
   "private": true,
-  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "node server.js",

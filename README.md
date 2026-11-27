@@ -2,8 +2,6 @@
 
 Simulasi bisnis ketuk layar *mobile-first* — **HTML5 + CSS3 + Vanilla JavaScript (ES Modules)**, **PWA** dengan mode luring, tanpa *framework* dan tanpa *dependency* runtime.
 
-- **Lisensi:** [MIT](./LICENSE)
-
 > **💱 Mata uang:** mata uang yang berlaku di game ini saat ini adalah **USD** (simbol `$`). Semua tampilan nominal (saldo, pendapatan, biaya upgrade, harga aset) dirender dengan awalan `$`. Helper `formatRupiahFull`/`formatRupiahCompact` di `utils/format.js` masih tersedia tetapi **tidak dipakai untuk tampilan utama** — jangan menampilkan `Rp` pada fitur atau label baru. Beberapa teks lama di tab Usaha masih menampilkan `Rp189 T` (placeholder, akan diseragamkan ke USD kemudian). Keputusan memakai USD ini bersifat sementara sampai ada keputusan resmi.
 
 > **🗣️ Bahasa:** game ini **wajib berbahasa Indonesia penuh** — **tidak boleh ada satu kata Bahasa Inggris pun** yang tampil ke pemain. Berlaku untuk semua teks: UI, tombol, label, badge, judul, toast, notifikasi, pesan error, `aria-label`, `title`, `alt`, placeholder, dokumen (README, manifest). Detail & daftar pelanggaran yang masih ada: lihat Bagian 5A. Identifier teknis (nama variabel/fungsi/kelas CSS) bukan bahasa game dan tidak dihitung.
