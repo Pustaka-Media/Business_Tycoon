@@ -4,7 +4,13 @@
 
 import { CONFIG } from '../../core/config.js';
 import { hasDOM, getEl } from '../../utils/dom.js';
-import { state, runtime, getStorage, writeSaveImmediate } from '../../core/state.js';
+import {
+  state,
+  runtime,
+  getStorage,
+  writeSaveImmediate,
+  getCloudSaveSnapshot
+} from '../../core/state.js';
 import {
   formatCurrencyValue,
   formatFullCurrencyValue,
@@ -13,7 +19,13 @@ import {
 } from '../../utils/format.js';
 import { playCoinBlip, triggerHaptic, showToast } from '../../components/feedback.js';
 import { setTabBadge } from '../../components/badges.js';
-import { subscribeAuthState, signInWithGoogle, signOutGoogle } from '../../core/firebase.js';
+import {
+  subscribeAuthState,
+  signInWithGoogle,
+  signOutGoogle,
+  syncPlayerSaveToCloud,
+  resetCloudPlayerSave
+} from '../../core/firebase.js';
 import {
   renderBankCardIdentity,
   renderStats,
@@ -38,6 +50,7 @@ const offlineModal = getEl('offline-modal');
 const milestoneToast = getEl('milestone-toast');
 const accountUserLabel = getEl('account-user-label');
 const googleSignInBtn = getEl('google-signin-btn');
+const cloudSyncNowBtn = getEl('cloud-sync-now-btn');
 const googleSignOutBtn = getEl('google-signout-btn');
 
 /**
@@ -114,7 +127,10 @@ export function resetAllData() {
       // Abaikan jika penyimpanan dibatasi
     }
   }
-  writeSaveImmediate();
+  writeSaveImmediate({ skipCloudSync: true });
+  resetCloudPlayerSave(getCloudSaveSnapshot()).catch(function () {
+    // Abaikan jika sedang luring saat reset
+  });
   setTabBadge('Earnings', 0);
   setTabBadge('Profile', 0);
   renderBankCardIdentity();
@@ -195,12 +211,17 @@ export function bindProfileEvents() {
       if (user) {
         accountUserLabel.textContent = user.displayName || user.email || 'Akun terhubung';
       } else {
-        accountUserLabel.textContent = 'Masuk dengan akun Google untuk menyimpan progres permainan.';
+        accountUserLabel.textContent =
+          'Masuk dengan akun Google untuk menyinkronkan portofolio dan progres antarperangkat.';
       }
     }
     if (googleSignInBtn) {
       googleSignInBtn.hidden = Boolean(user);
       googleSignInBtn.disabled = false;
+    }
+    if (cloudSyncNowBtn) {
+      cloudSyncNowBtn.hidden = !user;
+      cloudSyncNowBtn.disabled = false;
     }
     if (googleSignOutBtn) {
       googleSignOutBtn.hidden = !user;
@@ -213,11 +234,30 @@ export function bindProfileEvents() {
       googleSignInBtn.disabled = true;
       try {
         await signInWithGoogle();
-        showToast('Berhasil masuk dengan akun Google.');
+        showToast('Akun Pemain', 'Berhasil masuk dengan akun Google.');
       } catch (error) {
-        showToast('Gagal masuk ke akun Google. Coba lagi nanti.');
+        showToast('Akun Pemain', 'Gagal masuk ke akun Google. Coba lagi nanti.');
       } finally {
         googleSignInBtn.disabled = false;
+      }
+    });
+  }
+
+  if (cloudSyncNowBtn) {
+    cloudSyncNowBtn.addEventListener('click', async function () {
+      cloudSyncNowBtn.disabled = true;
+      try {
+        writeSaveImmediate({ syncImmediately: false, skipCloudSync: true });
+        const synced = await syncPlayerSaveToCloud(getCloudSaveSnapshot());
+        if (synced) {
+          showToast('Sinkronisasi Awan', 'Portofolio dan progres tersimpan ke awan.');
+        } else {
+          showToast('Sinkronisasi Awan', 'Sinkronisasi belum siap. Pastikan akun terverifikasi.');
+        }
+      } catch (error) {
+        showToast('Sinkronisasi Awan', 'Gagal menyinkronkan data ke awan. Coba lagi nanti.');
+      } finally {
+        cloudSyncNowBtn.disabled = false;
       }
     });
   }
@@ -227,9 +267,9 @@ export function bindProfileEvents() {
       googleSignOutBtn.disabled = true;
       try {
         await signOutGoogle();
-        showToast('Berhasil keluar dari akun.');
+        showToast('Akun Pemain', 'Berhasil keluar dari akun.');
       } catch (error) {
-        showToast('Gagal keluar dari akun.');
+        showToast('Akun Pemain', 'Gagal keluar dari akun.');
       } finally {
         googleSignOutBtn.disabled = false;
       }

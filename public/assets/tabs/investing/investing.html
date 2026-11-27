@@ -1,8 +1,9 @@
     <!-- ==================== LAYAR INVESTASI (DASBOR PORTOFOLIO) ==================== -->
     <section class="screen" id="investing-screen" aria-label="Dasbor Investasi" hidden>
       <div class="invest-body">
-        <!-- PANEL 1 — TOTAL KEPEMILIKAN & PASIF PER JAM (statis, data asli game) -->
-        <section class="panel panel--hero" id="hero-portfolio" aria-label="Ringkasan total kepemilikan">
+        <div class="invest-hero-wrap">
+          <!-- PANEL 1 — TOTAL KEPEMILIKAN & PASIF PER JAM (diam saat digulir) -->
+          <section class="panel panel--hero" id="hero-portfolio" aria-label="Ringkasan total kepemilikan">
           <img class="hero-bg-art" src="assets/aistudio/IMG_20261125_195255_669b1aec.png" width="687" height="440" loading="lazy" alt="" aria-hidden="true">
           <span class="hero-scrim" aria-hidden="true"></span>
           <div class="hero-top">
@@ -126,78 +127,111 @@
             </div>
           </div>
         </section>
+        </div>
 
-        <!-- PANEL 2 — DISTRIBUSI PER KELAS ASET -->
-        <section class="alloc-panel" aria-label="Distribusi per kelas aset">
-          <div class="alloc-chart">
-            <div class="donut-wrap">
-              <svg class="donut-svg" viewBox="0 0 220 220" role="img" aria-label="Diagram donat alokasi portofolio">
-                <circle class="donut-track" cx="110" cy="110" r="79"/>
-                <g id="donut-segments"></g>
-              </svg>
-              <div class="donut-center">
-                <small>TOTAL NILAI</small>
-                <strong id="alloc-center-total">$0.00</strong>
-                <span>LANGSUNG &middot; 3 dtk</span>
+        <div class="invest-scroll" id="invest-scroll">
+          <!-- PANEL 3 — KARTU KATEGORI INVESTASI (tampil langsung di bawah Panel 1; gulir untuk melihat Panel 2) -->
+          <section class="invest-categories" aria-label="Kategori investasi">
+            <button type="button" class="invest-cat-card" data-invest-category="Saham" aria-label="Buka daftar aset Saham">
+              <span class="invest-cat-card__icon shelf__icon--Saham" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="15 7 21 7 21 13"/></svg>
+              </span>
+              <span class="invest-cat-card__info">
+                <strong class="invest-cat-card__title">Saham</strong>
+                <small class="invest-cat-card__sub" id="cat-card-sub-Saham">Ekuitas &middot; 56 aset</small>
+              </span>
+              <span class="invest-cat-card__right">
+                <strong class="invest-cat-card__val" id="cat-card-total-Saham">$0.00</strong>
+                <small class="invest-cat-card__share" id="cat-card-share-Saham">0.0% portofolio</small>
+              </span>
+              <span class="invest-cat-card__chevron" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
+              </span>
+            </button>
+
+            <button type="button" class="invest-cat-card" data-invest-category="Kripto" aria-label="Buka daftar aset Kripto">
+              <span class="invest-cat-card__icon shelf__icon--Kripto" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6.4" rx="7.2" ry="2.9"/><path d="M4.8 6.4v11.2c0 1.6 3.2 2.9 7.2 2.9s7.2-1.3 7.2-2.9V6.4"/><path d="M4.8 12c0 1.6 3.2 2.9 7.2 2.9s7.2-1.3 7.2-2.9"/></svg>
+              </span>
+              <span class="invest-cat-card__info">
+                <strong class="invest-cat-card__title">Kripto</strong>
+                <small class="invest-cat-card__sub" id="cat-card-sub-Kripto">Aset Digital &middot; 52 aset</small>
+              </span>
+              <span class="invest-cat-card__right">
+                <strong class="invest-cat-card__val" id="cat-card-total-Kripto">$0.00</strong>
+                <small class="invest-cat-card__share" id="cat-card-share-Kripto">0.0% portofolio</small>
+              </span>
+              <span class="invest-cat-card__chevron" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
+              </span>
+            </button>
+
+            <button type="button" class="invest-cat-card" data-invest-category="Forex" aria-label="Buka daftar aset Forex">
+              <span class="invest-cat-card__icon shelf__icon--Forex" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5h13.5"/><path d="M13.8 5l3.7 3.5-3.7 3.5"/><path d="M20 15.5H6.5"/><path d="M10.2 19 6.5 15.5 10.2 12"/></svg>
+              </span>
+              <span class="invest-cat-card__info">
+                <strong class="invest-cat-card__title">Forex</strong>
+                <small class="invest-cat-card__sub" id="cat-card-sub-Forex">Mata Uang &middot; 26 aset</small>
+              </span>
+              <span class="invest-cat-card__right">
+                <strong class="invest-cat-card__val" id="cat-card-total-Forex">$0.00</strong>
+                <small class="invest-cat-card__share" id="cat-card-share-Forex">0.0% portofolio</small>
+              </span>
+              <span class="invest-cat-card__chevron" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
+              </span>
+            </button>
+          </section>
+
+          <!-- PANEL 2 — DISTRIBUSI PER KELAS ASET (muncul saat daftar kategori digulir) -->
+          <section class="alloc-panel" aria-label="Distribusi per kelas aset">
+            <div class="alloc-chart">
+              <div class="alloc-chart__head">
+                <p class="donut-caption">DISTRIBUSI PER KELAS ASET</p>
+              </div>
+              <div class="alloc-chart__row">
+                <div class="donut-wrap" id="alloc-donut-wrap">
+                  <svg class="donut-svg" viewBox="0 0 220 220" role="img" aria-label="Diagram donat alokasi portofolio">
+                    <circle class="donut-track" cx="110" cy="110" r="79"/>
+                    <g id="donut-segments"></g>
+                  </svg>
+                  <button type="button" class="donut-center" id="alloc-donut-center" aria-label="Tampilkan total portofolio">
+                    <small id="alloc-center-label">TOTAL NILAI</small>
+                    <strong id="alloc-center-total">$0.00</strong>
+                    <span id="alloc-center-sub">LANGSUNG &middot; 3 dtk</span>
+                  </button>
+                </div>
+                <div class="alloc-legend" id="alloc-legend" role="group" aria-label="Legenda interaktif kelas aset">
+                  <button type="button" class="alloc-legend__item" data-legend-category="Saham" aria-pressed="false">
+                    <span class="alloc-legend__swatch" aria-hidden="true"></span>
+                    <span class="alloc-legend__meta">
+                      <span class="alloc-legend__name">Saham</span>
+                      <span class="alloc-legend__val" id="legend-val-Saham">$0.00</span>
+                    </span>
+                    <span class="alloc-legend__share" id="legend-share-Saham">0.0%</span>
+                  </button>
+                  <button type="button" class="alloc-legend__item" data-legend-category="Kripto" aria-pressed="false">
+                    <span class="alloc-legend__swatch" aria-hidden="true"></span>
+                    <span class="alloc-legend__meta">
+                      <span class="alloc-legend__name">Kripto</span>
+                      <span class="alloc-legend__val" id="legend-val-Kripto">$0.00</span>
+                    </span>
+                    <span class="alloc-legend__share" id="legend-share-Kripto">0.0%</span>
+                  </button>
+                  <button type="button" class="alloc-legend__item" data-legend-category="Forex" aria-pressed="false">
+                    <span class="alloc-legend__swatch" aria-hidden="true"></span>
+                    <span class="alloc-legend__meta">
+                      <span class="alloc-legend__name">Forex</span>
+                      <span class="alloc-legend__val" id="legend-val-Forex">$0.00</span>
+                    </span>
+                    <span class="alloc-legend__share" id="legend-share-Forex">0.0%</span>
+                  </button>
+                </div>
               </div>
             </div>
-            <p class="donut-caption">DISTRIBUSI PER KELAS ASET</p>
-          </div>
-        </section>
-
-        <!-- KARTU KATEGORI INVESTASI (ketuk untuk membuka daftar aset di dalamnya) -->
-        <section class="invest-categories" aria-label="Kategori investasi">
-          <button type="button" class="invest-cat-card" data-invest-category="Saham" aria-label="Buka daftar aset Saham">
-            <span class="invest-cat-card__icon shelf__icon--Saham" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="15 7 21 7 21 13"/></svg>
-            </span>
-            <span class="invest-cat-card__info">
-              <strong class="invest-cat-card__title">Saham</strong>
-              <small class="invest-cat-card__sub" id="cat-card-sub-Saham">Ekuitas &middot; 19 aset</small>
-            </span>
-            <span class="invest-cat-card__right">
-              <strong class="invest-cat-card__val" id="cat-card-total-Saham">$0.00</strong>
-              <small class="invest-cat-card__share" id="cat-card-share-Saham">0.0% portofolio</small>
-            </span>
-            <span class="invest-cat-card__chevron" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
-            </span>
-          </button>
-
-          <button type="button" class="invest-cat-card" data-invest-category="Kripto" aria-label="Buka daftar aset Kripto">
-            <span class="invest-cat-card__icon shelf__icon--Kripto" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6.4" rx="7.2" ry="2.9"/><path d="M4.8 6.4v11.2c0 1.6 3.2 2.9 7.2 2.9s7.2-1.3 7.2-2.9V6.4"/><path d="M4.8 12c0 1.6 3.2 2.9 7.2 2.9s7.2-1.3 7.2-2.9"/></svg>
-            </span>
-            <span class="invest-cat-card__info">
-              <strong class="invest-cat-card__title">Kripto</strong>
-              <small class="invest-cat-card__sub" id="cat-card-sub-Kripto">Aset Digital &middot; 34 aset</small>
-            </span>
-            <span class="invest-cat-card__right">
-              <strong class="invest-cat-card__val" id="cat-card-total-Kripto">$0.00</strong>
-              <small class="invest-cat-card__share" id="cat-card-share-Kripto">0.0% portofolio</small>
-            </span>
-            <span class="invest-cat-card__chevron" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
-            </span>
-          </button>
-
-          <button type="button" class="invest-cat-card" data-invest-category="Forex" aria-label="Buka daftar aset Forex">
-            <span class="invest-cat-card__icon shelf__icon--Forex" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5h13.5"/><path d="M13.8 5l3.7 3.5-3.7 3.5"/><path d="M20 15.5H6.5"/><path d="M10.2 19 6.5 15.5 10.2 12"/></svg>
-            </span>
-            <span class="invest-cat-card__info">
-              <strong class="invest-cat-card__title">Forex</strong>
-              <small class="invest-cat-card__sub" id="cat-card-sub-Forex">Mata Uang &middot; 18 aset</small>
-            </span>
-            <span class="invest-cat-card__right">
-              <strong class="invest-cat-card__val" id="cat-card-total-Forex">$0.00</strong>
-              <small class="invest-cat-card__share" id="cat-card-share-Forex">0.0% portofolio</small>
-            </span>
-            <span class="invest-cat-card__chevron" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
-            </span>
-          </button>
-        </section>
+          </section>
+        </div>
       </div>
     </section>
 

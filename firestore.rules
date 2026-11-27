@@ -10,6 +10,10 @@ service cloud.firestore {
       return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
+    function isValidAssetId(id) {
+      return id is string && id.size() > 0 && id.size() <= 64 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
     function incoming() {
       return request.resource.data;
     }
@@ -36,9 +40,32 @@ service cloud.firestore {
         && data.updatedAt is timestamp;
     }
 
+    function isValidUpgrades(upgrades) {
+      return upgrades is map
+        && upgrades.keys().hasAll(['gloves', 'tap_machine', 'auto_team'])
+        && upgrades.keys().hasOnly(['gloves', 'tap_machine', 'auto_team'])
+        && upgrades.gloves is int && upgrades.gloves >= 0
+        && upgrades.tap_machine is int && upgrades.tap_machine >= 0
+        && upgrades.auto_team is int && upgrades.auto_team >= 0;
+    }
+
+    function isValidSettings(settings) {
+      return settings is map
+        && settings.keys().hasAll(['sound', 'haptic'])
+        && settings.keys().hasOnly(['sound', 'haptic'])
+        && settings.sound is bool
+        && settings.haptic is bool;
+    }
+
+    function isValidMilestones(milestones) {
+      return milestones is list
+        && milestones.size() <= 20
+        && (milestones.size() == 0 || (milestones[0] is string && milestones[0].size() > 0 && milestones[0].size() <= 64));
+    }
+
     function isValidPlayerSave(data, userId) {
-      return data.keys().hasAll(['userId', 'version', 'balance', 'perClick', 'perSecond', 'totalTaps', 'totalEarned', 'updatedAt'])
-        && data.keys().hasOnly(['userId', 'version', 'balance', 'perClick', 'perSecond', 'totalTaps', 'totalEarned', 'updatedAt'])
+      return data.keys().hasAll(['userId', 'version', 'balance', 'perClick', 'perSecond', 'totalTaps', 'totalEarned', 'upgrades', 'milestones', 'settings', 'startDate', 'clientSavedAt', 'updatedAt'])
+        && data.keys().hasOnly(['userId', 'version', 'balance', 'perClick', 'perSecond', 'totalTaps', 'totalEarned', 'upgrades', 'milestones', 'settings', 'startDate', 'clientSavedAt', 'updatedAt'])
         && data.userId is string && data.userId == userId && isValidId(data.userId)
         && data.version is number && data.version == 2
         && data.balance is number && data.balance >= 0
@@ -46,7 +73,32 @@ service cloud.firestore {
         && data.perSecond is number && data.perSecond >= 0
         && data.totalTaps is int && data.totalTaps >= 0
         && data.totalEarned is number && data.totalEarned >= 0
+        && isValidUpgrades(data.upgrades)
+        && isValidMilestones(data.milestones)
+        && isValidSettings(data.settings)
+        && data.startDate is int && data.startDate >= 0
+        && data.clientSavedAt is int && data.clientSavedAt >= 0
         && data.updatedAt is timestamp;
+    }
+
+    function isValidPortfolioHolding(data, userId, assetId) {
+      return data.keys().hasAll(['userId', 'assetId', 'units', 'avgEntry', 'updatedAt'])
+        && data.keys().hasOnly(['userId', 'assetId', 'units', 'avgEntry', 'updatedAt'])
+        && data.userId is string && data.userId == userId && isValidId(data.userId)
+        && data.assetId is string && data.assetId == assetId && isValidAssetId(data.assetId)
+        && data.units is int && data.units >= 1
+        && data.avgEntry is number && data.avgEntry >= 0
+        && data.updatedAt is timestamp;
+    }
+
+    function hasOwnedParentSaveAfter(userId) {
+      return existsAfter(/databases/$(database)/documents/playerSaves/$(userId))
+        && getAfter(/databases/$(database)/documents/playerSaves/$(userId)).data.userId == request.auth.uid;
+    }
+
+    function hasOwnedParentSave(userId) {
+      return exists(/databases/$(database)/documents/playerSaves/$(userId))
+        && get(/databases/$(database)/documents/playerSaves/$(userId)).data.userId == request.auth.uid;
     }
 
     match /users/{userId}/private/{docId} {
@@ -79,8 +131,42 @@ service cloud.firestore {
         && isValidPlayerSave(incoming(), userId)
         && incoming().userId == existing().userId
         && incoming().updatedAt == request.time
-        && incoming().diff(existing()).affectedKeys().hasOnly(['version', 'balance', 'perClick', 'perSecond', 'totalTaps', 'totalEarned', 'updatedAt']);
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'version',
+          'balance',
+          'perClick',
+          'perSecond',
+          'totalTaps',
+          'totalEarned',
+          'upgrades',
+          'milestones',
+          'settings',
+          'startDate',
+          'clientSavedAt',
+          'updatedAt'
+        ]);
       allow delete: if isValidId(userId) && isVerifiedOwner(userId);
+
+      match /holdings/{assetId} {
+        allow get: if isValidId(userId) && isValidAssetId(assetId) && isVerifiedOwner(userId);
+        allow list: if isValidId(userId) && isVerifiedOwner(userId) && resource.data.userId == request.auth.uid;
+        allow create: if isValidId(userId) && isValidAssetId(assetId)
+          && isVerifiedOwner(userId)
+          && isValidPortfolioHolding(incoming(), userId, assetId)
+          && incoming().updatedAt == request.time
+          && hasOwnedParentSaveAfter(userId);
+        allow update: if isValidId(userId) && isValidAssetId(assetId)
+          && isVerifiedOwner(userId)
+          && isValidPortfolioHolding(incoming(), userId, assetId)
+          && incoming().userId == existing().userId
+          && incoming().assetId == existing().assetId
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly(['units', 'avgEntry', 'updatedAt'])
+          && hasOwnedParentSave(userId);
+        allow delete: if isValidId(userId) && isValidAssetId(assetId)
+          && isVerifiedOwner(userId)
+          && hasOwnedParentSave(userId);
+      }
     }
   }
 }

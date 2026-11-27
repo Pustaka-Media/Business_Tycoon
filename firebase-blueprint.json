@@ -58,12 +58,95 @@
         "totalEarned": {
           "type": "number"
         },
+        "upgrades": {
+          "type": "object",
+          "properties": {
+            "gloves": {
+              "type": "integer"
+            },
+            "tap_machine": {
+              "type": "integer"
+            },
+            "auto_team": {
+              "type": "integer"
+            }
+          },
+          "required": ["gloves", "tap_machine", "auto_team"]
+        },
+        "milestones": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "maxItems": 20
+        },
+        "settings": {
+          "type": "object",
+          "properties": {
+            "sound": {
+              "type": "boolean"
+            },
+            "haptic": {
+              "type": "boolean"
+            }
+          },
+          "required": ["sound", "haptic"]
+        },
+        "startDate": {
+          "type": "integer"
+        },
+        "clientSavedAt": {
+          "type": "integer"
+        },
         "updatedAt": {
           "type": "string",
           "format": "date-time"
         }
       },
-      "required": ["userId", "version", "balance", "perClick", "perSecond", "totalTaps", "totalEarned", "updatedAt"]
+      "required": [
+        "userId",
+        "version",
+        "balance",
+        "perClick",
+        "perSecond",
+        "totalTaps",
+        "totalEarned",
+        "upgrades",
+        "milestones",
+        "settings",
+        "startDate",
+        "clientSavedAt",
+        "updatedAt"
+      ]
+    },
+    "PortfolioHolding": {
+      "title": "PortfolioHolding",
+      "description": "Kepemilikan aset investasi portofolio pemain di Firestore",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "assetId": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "units": {
+          "type": "integer"
+        },
+        "avgEntry": {
+          "type": "number"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["userId", "assetId", "units", "avgEntry", "updatedAt"]
     }
   },
   "firestore": {
@@ -78,6 +161,12 @@
         "$ref": "#/entities/PlayerSave"
       },
       "description": "Dokumen cloud save milik pemain per UID"
+    },
+    "/playerSaves/{userId}/holdings/{assetId}": {
+      "schema": {
+        "$ref": "#/entities/PortfolioHolding"
+      },
+      "description": "Posisi kepemilikan portofolio per aset milik pemain per UID"
     }
   }
 }

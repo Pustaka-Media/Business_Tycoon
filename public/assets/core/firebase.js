@@ -1,7 +1,7 @@
 /* ==========================================================================
    BUSINESS TYCOON TAP - INTEGRASI FIREBASE AUTH & FIRESTORE
    Mengelola autentikasi Google (Popup), validasi koneksi Firestore,
-   error handler terstruktur, serta sinkronisasi profil & cloud save.
+   error handler terstruktur, serta sinkronisasi profil, progres, & portofolio.
    ========================================================================== */
 
 import { CONFIG } from './config.js';
@@ -26,6 +26,14 @@ let googleProvider = null;
 let initPromise = null;
 let currentAuthUser = null;
 let cloudSyncTimer = null;
+let cloudPortfolioSyncTimer = null;
+let unsubSaveSnapshot = null;
+let unsubHoldingsSnapshot = null;
+let lastSyncedClientAt = 0;
+let lastAppliedCloudClientAt = 0;
+let knownCloudHoldingIds = null;
+let latestRealtimeSaveData = null;
+let latestRealtimeHoldingsMap = null;
 
 const authListeners = new Set();
 
@@ -38,6 +46,18 @@ export function isValidFirebaseUserId(uid) {
     uid.length > 0 &&
     uid.length <= CONFIG.USER_ID_MAX_LEN &&
     VALID_ID_REGEX.test(uid)
+  );
+}
+
+/**
+ * Memastikan string ID aset memenuhi pola keamanan blueprint & rules.
+ */
+export function isValidAssetId(assetId) {
+  return (
+    typeof assetId === 'string' &&
+    assetId.length > 0 &&
+    assetId.length <= CONFIG.ASSET_ID_MAX_LEN &&
+    VALID_ID_REGEX.test(assetId)
   );
 }
 
@@ -79,6 +99,36 @@ export function buildPlayerSavePayload(uid, snapshot, timestampValue) {
   const perSecond = Number(snapshot.perSecond);
   const totalTaps = Number(snapshot.totalTaps);
   const totalEarned = Number(snapshot.totalEarned);
+  const startDate = Number(snapshot.startDate);
+  const clientSavedAt = Number(snapshot.clientSavedAt);
+
+  const rawUpgrades = snapshot.upgrades && typeof snapshot.upgrades === 'object' ? snapshot.upgrades : {};
+  const upgrades = {};
+  CONFIG.UPGRADE_TIERS.forEach(function (tier) {
+    const lvl = Number(rawUpgrades[tier.id]);
+    upgrades[tier.id] = Number.isFinite(lvl) && lvl >= 0 ? Math.floor(lvl) : 0;
+  });
+
+  const milestones = [];
+  if (Array.isArray(snapshot.milestones)) {
+    snapshot.milestones.forEach(function (item) {
+      if (
+        typeof item === 'string' &&
+        item.length > 0 &&
+        item.length <= CONFIG.MILESTONE_ID_MAX_LEN &&
+        milestones.length < CONFIG.MILESTONES_MAX_COUNT &&
+        milestones.indexOf(item) < 0
+      ) {
+        milestones.push(item);
+      }
+    });
+  }
+
+  const rawSettings = snapshot.settings && typeof snapshot.settings === 'object' ? snapshot.settings : {};
+  const settings = {
+    sound: rawSettings.sound !== false,
+    haptic: rawSettings.haptic !== false
+  };
 
   return {
     userId: uid,
@@ -88,6 +138,39 @@ export function buildPlayerSavePayload(uid, snapshot, timestampValue) {
     perSecond: Number.isFinite(perSecond) && perSecond >= 0 ? Math.round(perSecond * 100) / 100 : 0,
     totalTaps: Number.isFinite(totalTaps) && totalTaps >= 0 ? Math.floor(totalTaps) : 0,
     totalEarned: Number.isFinite(totalEarned) && totalEarned >= 0 ? Math.round(totalEarned * 100) / 100 : 0,
+    upgrades: upgrades,
+    milestones: milestones,
+    settings: settings,
+    startDate: Number.isFinite(startDate) && startDate >= 0 ? Math.floor(startDate) : 0,
+    clientSavedAt: Number.isFinite(clientSavedAt) && clientSavedAt >= 0 ? Math.floor(clientSavedAt) : 0,
+    updatedAt: timestampValue
+  };
+}
+
+/**
+ * Menyusun payload satu posisi portofolio sesuai entitas PortfolioHolding.
+ */
+export function buildPortfolioHoldingPayload(uid, assetId, holding, timestampValue) {
+  if (
+    !isValidFirebaseUserId(uid) ||
+    !isValidAssetId(assetId) ||
+    !holding ||
+    typeof holding !== 'object'
+  ) {
+    return null;
+  }
+
+  const units = Number(holding.units);
+  const avgEntry = Number(holding.avgEntry);
+  if (!Number.isFinite(units) || Math.floor(units) < 1 || !Number.isFinite(avgEntry) || avgEntry < 0) {
+    return null;
+  }
+
+  return {
+    userId: uid,
+    assetId: assetId,
+    units: Math.floor(units),
+    avgEntry: Math.round(avgEntry * 100) / 100,
     updatedAt: timestampValue
   };
 }
@@ -148,6 +231,19 @@ export function subscribeAuthState(listener) {
   };
 }
 
+function detachRealtimeListeners() {
+  if (typeof unsubSaveSnapshot === 'function') {
+    unsubSaveSnapshot();
+    unsubSaveSnapshot = null;
+  }
+  if (typeof unsubHoldingsSnapshot === 'function') {
+    unsubHoldingsSnapshot();
+    unsubHoldingsSnapshot = null;
+  }
+  latestRealtimeSaveData = null;
+  latestRealtimeHoldingsMap = null;
+}
+
 async function testConnection() {
   if (!firebaseSdk || !dbInstance) return;
   const { doc, getDocFromServer } = firebaseSdk.firestore;
@@ -191,10 +287,97 @@ async function ensureUserPrivateProfile(user) {
   }
 }
 
+function extractHoldingsMapFromSnapshot(holdingsSnap) {
+  const holdings = {};
+  if (!holdingsSnap || !Array.isArray(holdingsSnap.docs)) return holdings;
+  holdingsSnap.docs.forEach(function (docSnap) {
+    const data = docSnap.data();
+    const assetId = data && typeof data.assetId === 'string' ? data.assetId : docSnap.id;
+    const units = Number(data && data.units);
+    const avgEntry = Number(data && data.avgEntry);
+    if (
+      isValidAssetId(assetId) &&
+      Number.isFinite(units) &&
+      Math.floor(units) >= 1 &&
+      Number.isFinite(avgEntry) &&
+      avgEntry >= 0
+    ) {
+      holdings[assetId] = {
+        units: Math.floor(units),
+        avgEntry: Math.round(avgEntry * 100) / 100
+      };
+    }
+  });
+  return holdings;
+}
+
+function attachRealtimeListeners(user, onRealtimeUpdate) {
+  detachRealtimeListeners();
+  if (!firebaseSdk || !dbInstance || !user || !user.emailVerified || typeof onRealtimeUpdate !== 'function') {
+    return;
+  }
+  const uid = user.uid;
+  if (!isValidFirebaseUserId(uid)) return;
+
+  const { doc, collection, query, where, onSnapshot } = firebaseSdk.firestore;
+  const savePath = 'playerSaves/' + uid;
+  const holdingsPath = 'playerSaves/' + uid + '/holdings';
+  const saveRef = doc(dbInstance, 'playerSaves', uid);
+  const holdingsQuery = query(
+    collection(dbInstance, 'playerSaves', uid, 'holdings'),
+    where('userId', '==', uid)
+  );
+
+  function maybeEmitUpdate() {
+    if (!latestRealtimeSaveData || !latestRealtimeHoldingsMap) return;
+    const cloudClientAt = Number(latestRealtimeSaveData.clientSavedAt) || 0;
+    if (cloudClientAt > 0 && (cloudClientAt <= lastSyncedClientAt || cloudClientAt <= lastAppliedCloudClientAt)) {
+      return;
+    }
+    if (cloudClientAt > 0) {
+      lastAppliedCloudClientAt = cloudClientAt;
+    }
+    onRealtimeUpdate(
+      Object.assign({}, latestRealtimeSaveData, {
+        holdings: Object.assign({}, latestRealtimeHoldingsMap)
+      })
+    );
+  }
+
+  unsubSaveSnapshot = onSnapshot(
+    saveRef,
+    function (docSnap) {
+      if (!docSnap.exists() || (docSnap.metadata && docSnap.metadata.hasPendingWrites)) {
+        return;
+      }
+      latestRealtimeSaveData = docSnap.data();
+      maybeEmitUpdate();
+    },
+    function (error) {
+      handleFirestoreError(error, OperationType.GET, savePath);
+    }
+  );
+
+  unsubHoldingsSnapshot = onSnapshot(
+    holdingsQuery,
+    function (querySnap) {
+      if (querySnap.metadata && querySnap.metadata.hasPendingWrites) {
+        return;
+      }
+      latestRealtimeHoldingsMap = extractHoldingsMapFromSnapshot(querySnap);
+      knownCloudHoldingIds = new Set(Object.keys(latestRealtimeHoldingsMap));
+      maybeEmitUpdate();
+    },
+    function (error) {
+      handleFirestoreError(error, OperationType.LIST, holdingsPath);
+    }
+  );
+}
+
 /**
  * Menginisialisasi Firebase App, Auth, dan Firestore (hanya di peramban).
  */
-export async function initFirebase(onCloudDataLoaded) {
+export async function initFirebase(onCloudDataLoaded, onRealtimeUpdate) {
   if (!hasDOM || typeof root.fetch !== 'function') return null;
   if (initPromise) return initPromise;
 
@@ -229,14 +412,23 @@ export async function initFirebase(onCloudDataLoaded) {
 
       authMod.onAuthStateChanged(authInstance, async function (user) {
         currentAuthUser = user || null;
+        knownCloudHoldingIds = null;
+        lastSyncedClientAt = 0;
+        lastAppliedCloudClientAt = 0;
+        detachRealtimeListeners();
         notifyAuthListeners();
+
         if (user && user.emailVerified) {
           try {
             await ensureUserPrivateProfile(user);
             const cloudSave = await loadPlayerSaveFromCloud();
+            if (cloudSave && Number(cloudSave.clientSavedAt) > 0) {
+              lastAppliedCloudClientAt = Number(cloudSave.clientSavedAt);
+            }
             if (typeof onCloudDataLoaded === 'function') {
               onCloudDataLoaded(cloudSave, user);
             }
+            attachRealtimeListeners(user, onRealtimeUpdate);
           } catch (error) {
             // Biarkan permainan lokal tetap berjalan jika sinkronisasi awan gagal sementara
           }
@@ -269,13 +461,15 @@ export async function signInWithGoogle() {
  * Keluar dari akun Google saat ini.
  */
 export async function signOutGoogle() {
+  detachRealtimeListeners();
+  knownCloudHoldingIds = null;
   if (!firebaseSdk || !authInstance) return;
   const { signOut } = firebaseSdk.auth;
   await signOut(authInstance);
 }
 
 /**
- * Membaca data cadangan pemain dari koleksi /playerSaves/{userId}.
+ * Membaca data cadangan pemain & subkoleksi portofolio dari /playerSaves/{userId}.
  */
 export async function loadPlayerSaveFromCloud() {
   if (!firebaseSdk || !dbInstance || !currentAuthUser || !currentAuthUser.emailVerified) {
@@ -284,52 +478,188 @@ export async function loadPlayerSaveFromCloud() {
   const uid = currentAuthUser.uid;
   if (!isValidFirebaseUserId(uid)) return null;
 
-  const { doc, getDoc } = firebaseSdk.firestore;
-  const path = 'playerSaves/' + uid;
+  const { doc, collection, query, where, getDoc, getDocs } = firebaseSdk.firestore;
+  const savePath = 'playerSaves/' + uid;
+  const holdingsPath = 'playerSaves/' + uid + '/holdings';
   const saveRef = doc(dbInstance, 'playerSaves', uid);
+  const holdingsQuery = query(
+    collection(dbInstance, 'playerSaves', uid, 'holdings'),
+    where('userId', '==', uid)
+  );
+
+  let saveData = null;
   try {
     const snap = await getDoc(saveRef);
-    return snap.exists() ? snap.data() : null;
+    if (!snap.exists()) {
+      knownCloudHoldingIds = new Set();
+      return null;
+    }
+    saveData = snap.data();
   } catch (error) {
-    handleFirestoreError(error, OperationType.GET, path);
+    handleFirestoreError(error, OperationType.GET, savePath);
     return null;
+  }
+
+  let holdingsMap = {};
+  try {
+    const holdingsSnap = await getDocs(holdingsQuery);
+    holdingsMap = extractHoldingsMapFromSnapshot(holdingsSnap);
+    knownCloudHoldingIds = new Set(Object.keys(holdingsMap));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.LIST, holdingsPath);
+    return null;
+  }
+
+  return Object.assign({}, saveData, { holdings: holdingsMap });
+}
+
+async function fetchExistingCloudHoldingIds(uid) {
+  if (knownCloudHoldingIds instanceof Set) {
+    return knownCloudHoldingIds;
+  }
+  const { collection, query, where, getDocs } = firebaseSdk.firestore;
+  const holdingsPath = 'playerSaves/' + uid + '/holdings';
+  const holdingsQuery = query(
+    collection(dbInstance, 'playerSaves', uid, 'holdings'),
+    where('userId', '==', uid)
+  );
+  try {
+    const snap = await getDocs(holdingsQuery);
+    const ids = new Set();
+    snap.docs.forEach(function (docSnap) {
+      ids.add(docSnap.id);
+    });
+    knownCloudHoldingIds = ids;
+    return ids;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.LIST, holdingsPath);
+    return new Set();
   }
 }
 
 /**
- * Menulis data cadangan pemain ke /playerSaves/{userId}.
+ * Menulis data cadangan pemain dan seluruh posisi portofolio secara atomik ke Firestore.
  */
 export async function syncPlayerSaveToCloud(snapshot) {
   if (!firebaseSdk || !dbInstance || !currentAuthUser || !currentAuthUser.emailVerified) {
     return false;
   }
   const uid = currentAuthUser.uid;
-  const { doc, setDoc, serverTimestamp } = firebaseSdk.firestore;
+  const { doc, writeBatch, serverTimestamp } = firebaseSdk.firestore;
   const payload = buildPlayerSavePayload(uid, snapshot, serverTimestamp());
   if (!payload) return false;
 
-  const path = 'playerSaves/' + uid;
+  const existingIds = await fetchExistingCloudHoldingIds(uid);
+  const desiredHoldings =
+    snapshot && snapshot.holdings && typeof snapshot.holdings === 'object' ? snapshot.holdings : {};
+
+  const ops = [];
+  Object.keys(desiredHoldings).forEach(function (assetId) {
+    const holdingPayload = buildPortfolioHoldingPayload(
+      uid,
+      assetId,
+      desiredHoldings[assetId],
+      serverTimestamp()
+    );
+    if (holdingPayload) {
+      ops.push({ type: 'set', assetId: assetId, data: holdingPayload });
+    }
+  });
+
+  existingIds.forEach(function (existingId) {
+    if (!Object.prototype.hasOwnProperty.call(desiredHoldings, existingId)) {
+      ops.push({ type: 'delete', assetId: existingId });
+    }
+  });
+
+  const savePath = 'playerSaves/' + uid;
   const saveRef = doc(dbInstance, 'playerSaves', uid);
+  lastSyncedClientAt = payload.clientSavedAt;
+
   try {
-    await setDoc(saveRef, payload);
+    let firstBatch = writeBatch(dbInstance);
+    firstBatch.set(saveRef, payload);
+    let opCount = 1;
+
+    for (let i = 0; i < ops.length; i += 1) {
+      if (opCount >= CONFIG.FIRESTORE_BATCH_LIMIT) {
+        await firstBatch.commit();
+        firstBatch = writeBatch(dbInstance);
+        opCount = 0;
+      }
+      const op = ops[i];
+      const hRef = doc(dbInstance, 'playerSaves', uid, 'holdings', op.assetId);
+      if (op.type === 'set') {
+        firstBatch.set(hRef, op.data);
+      } else {
+        firstBatch.delete(hRef);
+      }
+      opCount += 1;
+    }
+
+    if (opCount > 0) {
+      await firstBatch.commit();
+    }
+
+    const nextIds = new Set();
+    ops.forEach(function (op) {
+      if (op.type === 'set') nextIds.add(op.assetId);
+    });
+    knownCloudHoldingIds = nextIds;
     return true;
   } catch (error) {
-    handleFirestoreError(error, OperationType.WRITE, path);
+    handleFirestoreError(error, OperationType.WRITE, savePath);
     return false;
   }
 }
 
 /**
- * Menjadwalkan sinkronisasi cloud save dengan throttle hemat kuota baca/tulis.
+ * Menghapus portofolio awan dan mengatur ulang progres pemain saat Reset Semua Data.
  */
-export function scheduleCloudSaveSync(getSnapshot) {
+export async function resetCloudPlayerSave(snapshot) {
+  if (cloudSyncTimer) {
+    root.clearTimeout(cloudSyncTimer);
+    cloudSyncTimer = null;
+  }
+  if (cloudPortfolioSyncTimer) {
+    root.clearTimeout(cloudPortfolioSyncTimer);
+    cloudPortfolioSyncTimer = null;
+  }
+  const cleanSnapshot = Object.assign({}, snapshot || {}, { holdings: {} });
+  return syncPlayerSaveToCloud(cleanSnapshot);
+}
+
+/**
+ * Menjadwalkan sinkronisasi cloud save (cepat untuk transaksi portofolio, throttle 10s untuk ketukan).
+ */
+export function scheduleCloudSaveSync(getSnapshot, immediate) {
   if (!hasDOM || !currentAuthUser || !currentAuthUser.emailVerified) return;
-  if (cloudSyncTimer) return;
+
+  if (immediate) {
+    if (cloudSyncTimer) {
+      root.clearTimeout(cloudSyncTimer);
+      cloudSyncTimer = null;
+    }
+    if (cloudPortfolioSyncTimer) {
+      root.clearTimeout(cloudPortfolioSyncTimer);
+    }
+    cloudPortfolioSyncTimer = root.setTimeout(function () {
+      cloudPortfolioSyncTimer = null;
+      if (typeof getSnapshot === 'function') {
+        syncPlayerSaveToCloud(getSnapshot()).catch(function () {
+          // Kegagalan sinkronisasi tidak boleh mengganggu permainan luring
+        });
+      }
+    }, CONFIG.PORTFOLIO_SYNC_DEBOUNCE_MS);
+    return;
+  }
+
+  if (cloudSyncTimer || cloudPortfolioSyncTimer) return;
   cloudSyncTimer = root.setTimeout(function () {
     cloudSyncTimer = null;
     if (typeof getSnapshot === 'function') {
       syncPlayerSaveToCloud(getSnapshot()).catch(function () {
-        // Kegagalan sinkronisasi tidak boleh mengganggu permainan offline-first
+        // Kegagalan sinkronisasi tidak boleh mengganggu permainan luring
       });
     }
   }, CONFIG.CLOUD_SYNC_THROTTLE_MS);

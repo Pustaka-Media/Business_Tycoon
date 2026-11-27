@@ -104,24 +104,7 @@ export function calculateOfflineBonus(ratePerSecond, elapsedMs) {
   return { bonus: bonus, seconds: cappedSeconds };
 }
 
-/**
- * Menulis payload Save Schema v2 secara sinkron ke localStorage.
- */
-export function writeSaveImmediate() {
-  if (saveThrottleTimer) {
-    root.clearTimeout(saveThrottleTimer);
-    saveThrottleTimer = null;
-  }
-  if (priceSaveThrottleTimer) {
-    root.clearTimeout(priceSaveThrottleTimer);
-    priceSaveThrottleTimer = null;
-  }
-  hasPendingSave = false;
-  hasPendingPriceSave = false;
-  state.lastSeen = Date.now();
-  const storage = getStorage();
-  if (!storage) return;
-
+function buildSanitizedHoldings() {
   const cleanHoldings = {};
   ASSETS.forEach(function (asset) {
     const h = state.holdings[asset.id];
@@ -135,6 +118,31 @@ export function writeSaveImmediate() {
       };
     }
   });
+  return cleanHoldings;
+}
+
+/**
+ * Menulis payload Save Schema v2 secara sinkron ke localStorage.
+ */
+export function writeSaveImmediate(options) {
+  if (saveThrottleTimer) {
+    root.clearTimeout(saveThrottleTimer);
+    saveThrottleTimer = null;
+  }
+  if (priceSaveThrottleTimer) {
+    root.clearTimeout(priceSaveThrottleTimer);
+    priceSaveThrottleTimer = null;
+  }
+  hasPendingSave = false;
+  hasPendingPriceSave = false;
+  const preserveSeen = Boolean(options && options.preserveLastSeen);
+  if (!preserveSeen) {
+    state.lastSeen = Date.now();
+  }
+  const storage = getStorage();
+  if (!storage) return;
+
+  const cleanHoldings = buildSanitizedHoldings();
 
   const cleanLastPrices = {};
   ASSETS.forEach(function (asset) {
@@ -164,19 +172,49 @@ export function writeSaveImmediate() {
   } catch (error) {
     // Abaikan jika kuota penyimpanan penuh atau mode privat ketat
   }
-  scheduleCloudSaveSync(getCloudSaveSnapshot);
+  if (!options || !options.skipCloudSync) {
+    scheduleCloudSaveSync(getCloudSaveSnapshot, Boolean(options && options.syncImmediately));
+  }
 }
 
 /**
- * Mengambil ringkasan progres untuk sinkronisasi cloud save (PlayerSave).
+ * Mengambil ringkasan progres & portofolio lengkap untuk sinkronisasi cloud save (PlayerSave + holdings).
  */
 export function getCloudSaveSnapshot() {
+  const unlockedMilestones = [];
+  CONFIG.MILESTONES.forEach(function (m) {
+    if (state.milestones && state.milestones[m.id] && unlockedMilestones.length < CONFIG.MILESTONES_MAX_COUNT) {
+      unlockedMilestones.push(m.id);
+    }
+  });
+
+  const upgrades = {};
+  CONFIG.UPGRADE_TIERS.forEach(function (tier) {
+    const lvl = state.upgrades && Number.isFinite(Number(state.upgrades[tier.id]))
+      ? Math.max(0, Math.floor(Number(state.upgrades[tier.id])))
+      : 0;
+    upgrades[tier.id] = lvl;
+  });
+
   return {
     balance: state.balance,
     perClick: state.perClick,
     perSecond: state.perSecond,
     totalTaps: state.totalTaps,
-    totalEarned: state.totalEarned
+    totalEarned: state.totalEarned,
+    upgrades: upgrades,
+    milestones: unlockedMilestones,
+    settings: {
+      sound: state.settings ? state.settings.sound !== false : true,
+      haptic: state.settings ? state.settings.haptic !== false : true
+    },
+    startDate: Number.isFinite(Number(state.startDate)) && Number(state.startDate) > 0
+      ? Math.floor(Number(state.startDate))
+      : Date.now(),
+    clientSavedAt: Number.isFinite(Number(state.lastSeen)) && Number(state.lastSeen) > 0
+      ? Math.floor(Number(state.lastSeen))
+      : Date.now(),
+    holdings: buildSanitizedHoldings()
   };
 }
 
@@ -184,14 +222,18 @@ export function getCloudSaveSnapshot() {
  * Memastikan penyimpanan tertunda langsung ditulis (saat tab ditutup/sembunyi).
  */
 export function flushSaveState() {
-  writeSaveImmediate();
+  writeSaveImmediate({ syncImmediately: true });
 }
 
 /**
  * Menyimpan payload Save Schema v2 ke localStorage dengan throttle trailing-edge 500ms.
  */
-export function saveState() {
+export function saveState(options) {
   state.lastSeen = Date.now();
+  if (options && options.syncImmediately) {
+    writeSaveImmediate({ syncImmediately: true });
+    return;
+  }
   hasPendingSave = true;
   if (saveThrottleTimer) {
     return;

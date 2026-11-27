@@ -33,8 +33,19 @@ const investingOwnedScreen = getEl('investing-owned-screen');
 const assetDetailScreen = getEl('asset-detail-screen');
 const heroTotalValue = getEl('hero-total-value');
 const heroHourlyYield = getEl('hero-hourly-yield');
+const allocCenterLabel = getEl('alloc-center-label');
 const allocCenterTotal = getEl('alloc-center-total');
+const allocCenterSub = getEl('alloc-center-sub');
+const allocDonutCenter = getEl('alloc-donut-center');
 const donutSegmentsGroup = getEl('donut-segments');
+const donutWrap = getEl('alloc-donut-wrap') || (hasDOM ? document.querySelector('#investing-screen .donut-wrap') : null);
+const legendItems = hasDOM ? Array.from(document.querySelectorAll('[data-legend-category]')) : [];
+const legendValSaham = getEl('legend-val-Saham');
+const legendValKripto = getEl('legend-val-Kripto');
+const legendValForex = getEl('legend-val-Forex');
+const legendShareSaham = getEl('legend-share-Saham');
+const legendShareKripto = getEl('legend-share-Kripto');
+const legendShareForex = getEl('legend-share-Forex');
 const categoryBody = getEl('category-body');
 const categoryPortfolioCard = getEl('category-portfolio-card');
 const catPortfolioTitle = getEl('cat-portfolio-title');
@@ -288,9 +299,21 @@ const CAT_CARD_SHARES = {
   Kripto: catCardShareKripto,
   Forex: catCardShareForex
 };
+const LEGEND_VALS = {
+  Saham: legendValSaham,
+  Kripto: legendValKripto,
+  Forex: legendValForex
+};
+const LEGEND_SHARES = {
+  Saham: legendShareSaham,
+  Kripto: legendShareKripto,
+  Forex: legendShareForex
+};
 
 let activeCategoryScreen = null;
 let isOwnedScreenOpen = false;
+let activeLegendCategory = null;
+let hoveredLegendCategory = null;
 
 /**
  * Menghitung ringkasan portofolio lintas 4 kelas aset (nilai, P&L, alokasi,
@@ -358,6 +381,105 @@ function formatSharePercent(share) {
 
 let donutBuilt = false;
 const donutSegmentEls = [];
+const donutAnimState = {
+  rafId: null,
+  pulseTimer: null,
+  initialized: false,
+  currentTotal: 0,
+  targetTotal: 0,
+  currentFractions: INVEST_CATEGORIES.map(function () {
+    return 0;
+  }),
+  targetFractions: INVEST_CATEGORIES.map(function () {
+    return 0;
+  }),
+  currentShares: INVEST_CATEGORIES.map(function () {
+    return 0;
+  }),
+  targetShares: INVEST_CATEGORIES.map(function () {
+    return 0;
+  }),
+  currentCategoryTotals: INVEST_CATEGORIES.map(function () {
+    return 0;
+  }),
+  targetCategoryTotals: INVEST_CATEGORIES.map(function () {
+    return 0;
+  })
+};
+
+/**
+ * Menghentikan animasi donat distribusi portofolio yang sedang berjalan.
+ */
+function cancelDonutAnimation() {
+  if (donutAnimState.rafId !== null && typeof root.cancelAnimationFrame === 'function') {
+    root.cancelAnimationFrame(donutAnimState.rafId);
+  }
+  donutAnimState.rafId = null;
+}
+
+/**
+ * Menyelaraskan sorotan segmen donat, legenda interaktif, dan teks tengah donat.
+ */
+function syncDonutHighlightUI() {
+  const focusedCat = hoveredLegendCategory || activeLegendCategory;
+  const focusedIdx = focusedCat ? INVEST_CATEGORIES.indexOf(focusedCat) : 0;
+  const hasFocus = Boolean(focusedCat && focusedIdx >= 0);
+
+  if (donutBuilt) {
+    INVEST_CATEGORIES.forEach(function (cat, idx) {
+      const segment = donutSegmentEls[idx];
+      if (!segment) return;
+      segment.classList.toggle('is-active', Boolean(hasFocus && cat === focusedCat));
+      segment.classList.toggle('is-dimmed', Boolean(hasFocus && cat !== focusedCat));
+    });
+  }
+
+  legendItems.forEach(function (btn) {
+    const cat = btn.getAttribute('data-legend-category');
+    const isPressed = Boolean(activeLegendCategory && cat === activeLegendCategory);
+    const isHighlighted = Boolean(hasFocus && cat === focusedCat);
+    const isDimmed = Boolean(hasFocus && cat !== focusedCat);
+    btn.classList.toggle('is-active', isHighlighted);
+    btn.classList.toggle('is-dimmed', isDimmed);
+    btn.setAttribute('aria-pressed', String(isPressed));
+  });
+
+  if (hasFocus) {
+    const catVal = donutAnimState.currentCategoryTotals[focusedIdx] || 0;
+    const catShare = donutAnimState.currentShares[focusedIdx] || 0;
+    if (allocCenterLabel) {
+      allocCenterLabel.textContent = focusedCat.toUpperCase();
+    }
+    if (allocCenterTotal) {
+      allocCenterTotal.textContent = formatUsdCompact(catVal);
+      allocCenterTotal.title = formatUsdFull(catVal);
+    }
+    if (allocCenterSub) {
+      allocCenterSub.textContent = formatSharePercent(catShare) + ' PORTOFOLIO';
+    }
+  } else {
+    const totalVal = donutAnimState.currentTotal || 0;
+    if (allocCenterLabel) {
+      allocCenterLabel.textContent = 'TOTAL NILAI';
+    }
+    if (allocCenterTotal) {
+      allocCenterTotal.textContent = formatUsdCompact(totalVal);
+      allocCenterTotal.title = formatUsdFull(totalVal);
+    }
+    if (allocCenterSub) {
+      allocCenterSub.textContent = 'LANGSUNG \u00B7 3 dtk';
+    }
+  }
+}
+
+/**
+ * Mengatur atau membalikkan pilihan kategori aktif pada legenda & segmen donat.
+ */
+function toggleLegendCategory(cat) {
+  if (!cat || INVEST_CATEGORIES.indexOf(cat) < 0) return;
+  activeLegendCategory = activeLegendCategory === cat ? null : cat;
+  syncDonutHighlightUI();
+}
 
 /**
  * Membangun segmen donat satu kali (Saham, Kripto, Forex).
@@ -368,6 +490,10 @@ function ensureDonutSkeleton() {
   INVEST_CATEGORIES.forEach(function (cat) {
     const segment = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     segment.setAttribute('class', 'donut-segment');
+    segment.setAttribute('data-donut-category', cat);
+    segment.setAttribute('tabindex', '0');
+    segment.setAttribute('role', 'button');
+    segment.setAttribute('aria-label', 'Sorot kelas aset ' + cat);
     segment.setAttribute('cx', '110');
     segment.setAttribute('cy', '110');
     segment.setAttribute('r', String(CONFIG.DONUT_RADIUS));
@@ -381,26 +507,189 @@ function ensureDonutSkeleton() {
 }
 
 /**
- * Memperbarui segmen donat sesuai bobot portofolio terkini.
+ * Menerapkan satu frame segmen donat, total nilai tengah, dan persentase distribusi kategori.
+ */
+function applyDonutFrame(fractions, totalVal, shares, categoryTotals) {
+  ensureDonutSkeleton();
+  const circumference = Math.PI * CONFIG.FULL_CIRCLE_TURNS * CONFIG.DONUT_RADIUS;
+  let offset = 0;
+
+  if (donutBuilt) {
+    INVEST_CATEGORIES.forEach(function (_cat, idx) {
+      const segment = donutSegmentEls[idx];
+      if (!segment) return;
+      const frac = Math.max(0, Math.min(1, fractions[idx] || 0));
+      const length = circumference * frac;
+      const remainder = Math.max(0, circumference - length);
+      segment.setAttribute('stroke-dasharray', String(length) + ' ' + String(remainder));
+      segment.setAttribute('stroke-dashoffset', String(-offset));
+      offset += length;
+    });
+  }
+
+  INVEST_CATEGORIES.forEach(function (cat, idx) {
+    const shareText = formatSharePercent(shares[idx]);
+    const catVal = categoryTotals ? categoryTotals[idx] || 0 : 0;
+    if (CAT_CARD_SHARES[cat]) {
+      CAT_CARD_SHARES[cat].textContent = shareText + ' portofolio';
+    }
+    if (LEGEND_SHARES[cat]) {
+      LEGEND_SHARES[cat].textContent = shareText;
+    }
+    if (LEGEND_VALS[cat]) {
+      LEGEND_VALS[cat].textContent = formatUsdCompact(catVal);
+      LEGEND_VALS[cat].title = formatUsdFull(catVal);
+    }
+  });
+
+  syncDonutHighlightUI();
+}
+
+function triggerDonutPulse(direction) {
+  if (donutWrap) {
+    donutWrap.classList.remove('is-updating');
+    void donutWrap.offsetWidth;
+    donutWrap.classList.add('is-updating');
+  }
+  if (allocCenterTotal) {
+    allocCenterTotal.classList.remove('is-up', 'is-down');
+    if (direction !== 'flat') {
+      void allocCenterTotal.offsetWidth;
+      allocCenterTotal.classList.add(direction === 'up' ? 'is-up' : 'is-down');
+    }
+  }
+  if (donutAnimState.pulseTimer !== null) {
+    clearTimeout(donutAnimState.pulseTimer);
+  }
+  donutAnimState.pulseTimer = setTimeout(function () {
+    donutAnimState.pulseTimer = null;
+    if (donutWrap) donutWrap.classList.remove('is-updating');
+    if (allocCenterTotal) allocCenterTotal.classList.remove('is-up', 'is-down');
+  }, CONFIG.DONUT_PULSE_MS);
+}
+
+/**
+ * Memperbarui segmen donat dan persentase distribusi dengan transisi halus saat nilai berubah.
  */
 function updateDonut(allocation) {
   ensureDonutSkeleton();
-  if (!donutBuilt) return;
-  const circumference = Math.PI * CONFIG.FULL_CIRCLE_TURNS * CONFIG.DONUT_RADIUS;
-  let offset = 0;
-  INVEST_CATEGORIES.forEach(function (cat, idx) {
-    const segment = donutSegmentEls[idx];
-    if (!segment) return;
-    const value = allocation.byCategory[cat].totalValue;
-    const fraction = allocation.total > 0 ? value / allocation.total : 0;
-    const length = circumference * fraction;
-    segment.setAttribute(
-      'stroke-dasharray',
-      String(length) + ' ' + String(circumference - length)
-    );
-    segment.setAttribute('stroke-dashoffset', String(-offset));
-    offset += length;
+
+  const targetTotal = Number.isFinite(allocation.total) ? allocation.total : 0;
+  const targetCategoryTotals = INVEST_CATEGORIES.map(function (cat) {
+    const val = allocation.byCategory[cat].totalValue;
+    return Number.isFinite(val) ? val : 0;
   });
+  const targetFractions = targetCategoryTotals.map(function (val) {
+    return targetTotal > 0 ? val / targetTotal : 0;
+  });
+  const targetShares = targetFractions.map(function (frac) {
+    return frac * 100;
+  });
+
+  const prevTargetTotal = donutAnimState.targetTotal;
+  const totalChanged = Math.abs(targetTotal - prevTargetTotal) > CONFIG.DONUT_EPSILON;
+  const fractionsChanged = targetFractions.some(function (frac, idx) {
+    return Math.abs(frac - donutAnimState.targetFractions[idx]) > CONFIG.DONUT_EPSILON;
+  });
+  const hasChanged = totalChanged || fractionsChanged;
+
+  const prefersReduced =
+    hasDOM &&
+    typeof root.matchMedia === 'function' &&
+    root.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const canAnimate =
+    hasDOM && typeof root.requestAnimationFrame === 'function' && !prefersReduced;
+
+  const fromTotal = donutAnimState.initialized ? donutAnimState.currentTotal : 0;
+  const fromFractions = donutAnimState.initialized
+    ? donutAnimState.currentFractions.slice()
+    : targetFractions.map(function () {
+        return 0;
+      });
+  const fromShares = donutAnimState.initialized
+    ? donutAnimState.currentShares.slice()
+    : targetShares.map(function () {
+        return 0;
+      });
+  const fromCategoryTotals = donutAnimState.initialized
+    ? donutAnimState.currentCategoryTotals.slice()
+    : targetCategoryTotals.map(function () {
+        return 0;
+      });
+
+  donutAnimState.targetTotal = targetTotal;
+  donutAnimState.targetFractions = targetFractions.slice();
+  donutAnimState.targetShares = targetShares.slice();
+  donutAnimState.targetCategoryTotals = targetCategoryTotals.slice();
+
+  const shouldAnimate =
+    canAnimate &&
+    (donutAnimState.initialized ? hasChanged : targetTotal > 0);
+
+  if (!shouldAnimate) {
+    cancelDonutAnimation();
+    donutAnimState.initialized = true;
+    donutAnimState.currentTotal = targetTotal;
+    donutAnimState.currentFractions = targetFractions.slice();
+    donutAnimState.currentShares = targetShares.slice();
+    donutAnimState.currentCategoryTotals = targetCategoryTotals.slice();
+    applyDonutFrame(targetFractions, targetTotal, targetShares, targetCategoryTotals);
+    return;
+  }
+
+  if (donutAnimState.initialized && hasChanged) {
+    const direction =
+      targetTotal > prevTargetTotal
+        ? 'up'
+        : targetTotal < prevTargetTotal
+          ? 'down'
+          : 'flat';
+    triggerDonutPulse(direction);
+  }
+
+  donutAnimState.initialized = true;
+  cancelDonutAnimation();
+
+  const startTs =
+    typeof performance !== 'undefined' && typeof performance.now === 'function'
+      ? performance.now()
+      : Date.now();
+
+  function stepDonut(nowTs) {
+    const rawProgress = (nowTs - startTs) / CONFIG.DONUT_ANIM_DURATION_MS;
+    const clamped = Math.max(0, Math.min(1, rawProgress));
+    const eased = 1 - Math.pow(1 - clamped, CONFIG.CHART_EASE_POWER);
+
+    const frameTotal = fromTotal + (targetTotal - fromTotal) * eased;
+    const frameFractions = targetFractions.map(function (targetFrac, idx) {
+      return fromFractions[idx] + (targetFrac - fromFractions[idx]) * eased;
+    });
+    const frameShares = targetShares.map(function (targetShare, idx) {
+      return fromShares[idx] + (targetShare - fromShares[idx]) * eased;
+    });
+    const frameCategoryTotals = targetCategoryTotals.map(function (targetCatVal, idx) {
+      return fromCategoryTotals[idx] + (targetCatVal - fromCategoryTotals[idx]) * eased;
+    });
+
+    donutAnimState.currentTotal = frameTotal;
+    donutAnimState.currentFractions = frameFractions;
+    donutAnimState.currentShares = frameShares;
+    donutAnimState.currentCategoryTotals = frameCategoryTotals;
+    applyDonutFrame(frameFractions, frameTotal, frameShares, frameCategoryTotals);
+
+    if (clamped < 1) {
+      donutAnimState.rafId = root.requestAnimationFrame(stepDonut);
+    } else {
+      donutAnimState.rafId = null;
+      donutAnimState.currentTotal = targetTotal;
+      donutAnimState.currentFractions = targetFractions.slice();
+      donutAnimState.currentShares = targetShares.slice();
+      donutAnimState.currentCategoryTotals = targetCategoryTotals.slice();
+      applyDonutFrame(targetFractions, targetTotal, targetShares, targetCategoryTotals);
+    }
+  }
+
+  donutAnimState.rafId = root.requestAnimationFrame(stepDonut);
 }
 
 let shelvesBuilt = false;
@@ -700,14 +989,10 @@ export function renderInvestingScreen() {
     heroHourlyYield.title = formatUsdFull(hourlyYield) + ' per jam';
   }
 
-  if (allocCenterTotal) {
-    allocCenterTotal.textContent = formatUsdCompact(total);
-  }
   updateDonut(allocation);
 
   INVEST_CATEGORIES.forEach(function (cat) {
     const value = allocation.byCategory[cat].totalValue;
-    const share = allocation.total > 0 ? (value / allocation.total) * 100 : 0;
     const assetCount = ASSETS.filter(function (asset) {
       return asset.category === cat;
     }).length;
@@ -718,9 +1003,6 @@ export function renderInvestingScreen() {
     if (CAT_CARD_TOTALS[cat]) {
       CAT_CARD_TOTALS[cat].textContent = formatUsdCompact(value);
       CAT_CARD_TOTALS[cat].title = formatUsdFull(value);
-    }
-    if (CAT_CARD_SHARES[cat]) {
-      CAT_CARD_SHARES[cat].textContent = formatSharePercent(share) + ' portofolio';
     }
   });
 
@@ -757,8 +1039,204 @@ export function resolveTradeQuantities(currentPrice, ownedUnits) {
   };
 }
 
+let chartAnimRafId = null;
+const chartAnimState = {
+  assetId: null,
+  lastTs: null,
+  firstTs: null,
+  lastPrice: null,
+  lastWidth: 0,
+  renderedPrices: null,
+  renderedMinPrice: null,
+  renderedMaxPrice: null,
+  targetPrices: null,
+  targetMinPrice: null,
+  targetMaxPrice: null,
+  direction: 'flat'
+};
+
 /**
- * Menggambar grafik riwayat harga aset di Canvas 2D (DPR-scaled, mulus, tanpa library luar).
+ * Menghentikan animasi grafik yang sedang berjalan (saat menutup layar atau mengganti aset).
+ */
+export function cancelChartAnimation() {
+  if (chartAnimRafId !== null && typeof root.cancelAnimationFrame === 'function') {
+    root.cancelAnimationFrame(chartAnimRafId);
+  }
+  chartAnimRafId = null;
+}
+
+function easeOutCubic(t) {
+  const clamped = Math.max(0, Math.min(1, t));
+  return 1 - Math.pow(1 - clamped, CONFIG.CHART_EASE_POWER);
+}
+
+function computePriceBounds(priceValues) {
+  let minPrice = priceValues[0];
+  let maxPrice = priceValues[0];
+  priceValues.forEach(function (val) {
+    if (val < minPrice) minPrice = val;
+    if (val > maxPrice) maxPrice = val;
+  });
+
+  const displayMin = minPrice;
+  const displayMax = maxPrice;
+
+  if (maxPrice <= minPrice) {
+    const flatSpread = Math.max(minPrice * CONFIG.CHART_FLAT_SPREAD_RATIO, 1);
+    minPrice = Math.max(0, minPrice - flatSpread);
+    maxPrice = maxPrice + flatSpread;
+  } else {
+    const range = maxPrice - minPrice;
+    minPrice = Math.max(0, minPrice - range * CONFIG.CHART_RANGE_PAD_RATIO);
+    maxPrice = maxPrice + range * CONFIG.CHART_RANGE_PAD_RATIO;
+  }
+
+  return {
+    displayMin: displayMin,
+    displayMax: displayMax,
+    scaleMin: minPrice,
+    scaleMax: maxPrice
+  };
+}
+
+function drawChartFrame(ctx, cssWidth, cssHeight, dpr, frame) {
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, cssWidth, cssHeight);
+
+  const plotLeft = CONFIG.CHART_PAD_LEFT;
+  const plotRight = cssWidth - CONFIG.CHART_PAD_RIGHT;
+  const plotTop = CONFIG.CHART_PAD_TOP;
+  const plotBottom = cssHeight - CONFIG.CHART_PAD_BOTTOM;
+  const plotW = Math.max(1, plotRight - plotLeft);
+  const plotH = Math.max(1, plotBottom - plotTop);
+
+  // Grid horizontal tipis (atas, tengah, bawah)
+  ctx.strokeStyle = CONFIG.CHART_GRID_COLOR;
+  ctx.lineWidth = 1;
+  const midGridY = (plotTop + plotBottom) / CONFIG.CHART_MID_DIVISOR;
+  [plotTop, midGridY, plotBottom].forEach(function (gy) {
+    ctx.beginPath();
+    ctx.moveTo(plotLeft, gy);
+    ctx.lineTo(plotRight, gy);
+    ctx.stroke();
+  });
+
+  const coords = frame.coords;
+  const dotCoord = frame.dotCoord || coords[coords.length - 1];
+  const clipRight =
+    typeof frame.clipRight === 'number' ? frame.clipRight : plotRight;
+
+  function traceSmoothCurve() {
+    ctx.moveTo(coords[0].x, coords[0].y);
+    for (let i = 0; i < coords.length - 1; i += 1) {
+      const midX = (coords[i].x + coords[i + 1].x) / CONFIG.CHART_MID_DIVISOR;
+      const midY = (coords[i].y + coords[i + 1].y) / CONFIG.CHART_MID_DIVISOR;
+      if (i === 0) {
+        ctx.lineTo(midX, midY);
+      } else {
+        ctx.quadraticCurveTo(coords[i].x, coords[i].y, midX, midY);
+      }
+    }
+    const last = coords[coords.length - 1];
+    ctx.lineTo(last.x, last.y);
+  }
+
+  // Klip area plot agar titik yang bergeser ke kiri terpotong rapi di batas grafik
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(
+    plotLeft,
+    plotTop - CONFIG.CHART_CLIP_PAD_PX,
+    Math.max(1, clipRight - plotLeft),
+    plotH + CONFIG.CHART_CLIP_PAD_PX + CONFIG.CHART_CLIP_PAD_PX
+  );
+  ctx.clip();
+
+  // Area gradient di bawah kurva (mendukung fade-in halus saat grafik pertama kali dimuat)
+  const fillAlpha = typeof frame.fillAlpha === 'number' ? frame.fillAlpha : 1;
+  const lastCoord = coords[coords.length - 1];
+  ctx.save();
+  ctx.globalAlpha = fillAlpha;
+  ctx.beginPath();
+  traceSmoothCurve();
+  ctx.lineTo(lastCoord.x, plotBottom);
+  ctx.lineTo(coords[0].x, plotBottom);
+  ctx.closePath();
+  const grad = ctx.createLinearGradient(0, plotTop, 0, plotBottom);
+  grad.addColorStop(0, CONFIG.CHART_FILL_TOP);
+  grad.addColorStop(1, CONFIG.CHART_FILL_BOTTOM);
+  ctx.fillStyle = grad;
+  ctx.fill();
+  ctx.restore();
+
+  // Garis kurva utama
+  ctx.beginPath();
+  traceSmoothCurve();
+  ctx.strokeStyle = CONFIG.CHART_STROKE_COLOR;
+  ctx.lineWidth = CONFIG.CHART_LINE_WIDTH;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.stroke();
+  ctx.restore();
+
+  // Halo denyut langsung saat terjadi pembaruan harga
+  if (typeof frame.pulseProgress === 'number' && frame.pulseProgress > 0 && frame.pulseProgress < 1) {
+    const pulseEase = easeOutCubic(frame.pulseProgress);
+    const pulseRadius =
+      CONFIG.CHART_DOT_OUTER_RADIUS +
+      (CONFIG.CHART_PULSE_MAX_RADIUS - CONFIG.CHART_DOT_OUTER_RADIUS) * pulseEase;
+    const pulseAlpha = CONFIG.CHART_PULSE_START_ALPHA * (1 - frame.pulseProgress);
+    let pulseRgb = CONFIG.CHART_PULSE_COLOR_FLAT;
+    if (frame.direction === 'up') {
+      pulseRgb = CONFIG.CHART_PULSE_COLOR_UP;
+    } else if (frame.direction === 'down') {
+      pulseRgb = CONFIG.CHART_PULSE_COLOR_DOWN;
+    }
+    ctx.beginPath();
+    ctx.arc(dotCoord.x, dotCoord.y, pulseRadius, 0, Math.PI * CONFIG.CHART_MID_DIVISOR);
+    ctx.strokeStyle = 'rgba(' + pulseRgb + ', ' + pulseAlpha.toFixed(CONFIG.CHART_EASE_POWER) + ')';
+    ctx.lineWidth = CONFIG.CHART_PULSE_STROKE_WIDTH;
+    ctx.stroke();
+  }
+
+  // Titik harga terakhir di ujung kanan (diwarnai sesuai arah tick selama denyut aktif)
+  let dotColor = CONFIG.CHART_STROKE_COLOR;
+  if (typeof frame.pulseProgress === 'number' && frame.pulseProgress < 1) {
+    if (frame.direction === 'up') {
+      dotColor = CONFIG.CHART_DOT_UP_COLOR;
+    } else if (frame.direction === 'down') {
+      dotColor = CONFIG.CHART_DOT_DOWN_COLOR;
+    }
+  }
+  ctx.beginPath();
+  ctx.arc(dotCoord.x, dotCoord.y, CONFIG.CHART_DOT_OUTER_RADIUS, 0, Math.PI * CONFIG.CHART_MID_DIVISOR);
+  ctx.fillStyle = CONFIG.CHART_DOT_BG_COLOR;
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(dotCoord.x, dotCoord.y, CONFIG.CHART_DOT_INNER_RADIUS, 0, Math.PI * CONFIG.CHART_MID_DIVISOR);
+  ctx.fillStyle = dotColor;
+  ctx.fill();
+
+  // Label Y-axis (Maks & Min) + X-axis (HH:MM)
+  ctx.font = CONFIG.CHART_FONT;
+  ctx.fillStyle = CONFIG.CHART_LABEL_COLOR;
+
+  ctx.textAlign = 'left';
+  ctx.fillText('Maks ' + formatRupiahCompact(frame.displayMax), plotLeft, CONFIG.CHART_LABEL_OFFSET_TOP_Y);
+  ctx.textAlign = 'right';
+  ctx.fillText('Min ' + formatRupiahCompact(frame.displayMin), plotRight, CONFIG.CHART_LABEL_OFFSET_TOP_Y);
+
+  const xLabelY = plotBottom + CONFIG.CHART_X_LABEL_OFFSET_Y;
+  ctx.textAlign = 'left';
+  ctx.fillText(formatTimeHHMM(frame.firstTs), plotLeft, xLabelY);
+  ctx.textAlign = 'center';
+  ctx.fillText(formatTimeHHMM(frame.midTs), plotLeft + plotW / CONFIG.CHART_MID_DIVISOR, xLabelY);
+  ctx.textAlign = 'right';
+  ctx.fillText(formatTimeHHMM(frame.lastTs), plotRight, xLabelY);
+}
+
+/**
+ * Menggambar grafik riwayat harga aset di Canvas 2D dengan transisi halus saat data diperbarui real-time.
  */
 export function renderAssetPriceChart(asset) {
   if (!assetPriceCanvas || typeof assetPriceCanvas.getContext !== 'function') return;
@@ -780,9 +1258,6 @@ export function renderAssetPriceChart(asset) {
     assetPriceCanvas.height = targetH;
   }
 
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.clearRect(0, 0, cssWidth, cssHeight);
-
   const rawHistory = Array.isArray(state.priceHistory[asset.id])
     ? state.priceHistory[asset.id]
     : [];
@@ -800,26 +1275,10 @@ export function renderAssetPriceChart(asset) {
     points.unshift({ ts: points[0].ts - CONFIG.PRICE_TICK_MS, price: points[0].price });
   }
 
-  let minPrice = points[0].price;
-  let maxPrice = points[0].price;
-  points.forEach(function (pt) {
-    if (pt.price < minPrice) minPrice = pt.price;
-    if (pt.price > maxPrice) maxPrice = pt.price;
+  const targetPrices = points.map(function (pt) {
+    return pt.price;
   });
-
-  const displayMin = minPrice;
-  const displayMax = maxPrice;
-
-  if (maxPrice <= minPrice) {
-    const flatSpread = Math.max(minPrice * CONFIG.CHART_FLAT_SPREAD_RATIO, 1);
-    minPrice = Math.max(0, minPrice - flatSpread);
-    maxPrice = maxPrice + flatSpread;
-  } else {
-    const range = maxPrice - minPrice;
-    minPrice = Math.max(0, minPrice - range * CONFIG.CHART_RANGE_PAD_RATIO);
-    maxPrice = maxPrice + range * CONFIG.CHART_RANGE_PAD_RATIO;
-  }
-  const safeSpan = maxPrice - minPrice > 0 ? maxPrice - minPrice : 1;
+  const targetBounds = computePriceBounds(targetPrices);
 
   const plotLeft = CONFIG.CHART_PAD_LEFT;
   const plotRight = cssWidth - CONFIG.CHART_PAD_RIGHT;
@@ -828,91 +1287,276 @@ export function renderAssetPriceChart(asset) {
   const plotW = Math.max(1, plotRight - plotLeft);
   const plotH = Math.max(1, plotBottom - plotTop);
 
-  // Grid horizontal tipis (atas, tengah, bawah)
-  ctx.strokeStyle = CONFIG.CHART_GRID_COLOR;
-  ctx.lineWidth = 1;
-  const midGridY = (plotTop + plotBottom) / CONFIG.CHART_MID_DIVISOR;
-  [plotTop, midGridY, plotBottom].forEach(function (gy) {
-    ctx.beginPath();
-    ctx.moveTo(plotLeft, gy);
-    ctx.lineTo(plotRight, gy);
-    ctx.stroke();
-  });
-
-  const coords = points.map(function (pt, idx) {
-    const x = plotLeft + (idx / (points.length - 1)) * plotW;
-    const y = plotBottom - ((pt.price - minPrice) / safeSpan) * plotH;
-    return { x: x, y: y };
-  });
-
-  // Helper untuk membangun kurva mulus (quadratic midpoint)
-  function traceSmoothCurve() {
-    ctx.moveTo(coords[0].x, coords[0].y);
-    for (let i = 0; i < coords.length - 1; i += 1) {
-      const midX = (coords[i].x + coords[i + 1].x) / CONFIG.CHART_MID_DIVISOR;
-      const midY = (coords[i].y + coords[i + 1].y) / CONFIG.CHART_MID_DIVISOR;
-      if (i === 0) {
-        ctx.lineTo(midX, midY);
-      } else {
-        ctx.quadraticCurveTo(coords[i].x, coords[i].y, midX, midY);
-      }
-    }
-    const last = coords[coords.length - 1];
-    ctx.lineTo(last.x, last.y);
-  }
-
-  // Area gradient orange muda di bawah garis
-  const lastCoord = coords[coords.length - 1];
-  ctx.beginPath();
-  traceSmoothCurve();
-  ctx.lineTo(lastCoord.x, plotBottom);
-  ctx.lineTo(coords[0].x, plotBottom);
-  ctx.closePath();
-  const grad = ctx.createLinearGradient(0, plotTop, 0, plotBottom);
-  grad.addColorStop(0, CONFIG.CHART_FILL_TOP);
-  grad.addColorStop(1, CONFIG.CHART_FILL_BOTTOM);
-  ctx.fillStyle = grad;
-  ctx.fill();
-
-  // Garis utama #F97316 tebal 2px
-  ctx.beginPath();
-  traceSmoothCurve();
-  ctx.strokeStyle = CONFIG.CHART_STROKE_COLOR;
-  ctx.lineWidth = CONFIG.CHART_LINE_WIDTH;
-  ctx.lineJoin = 'round';
-  ctx.lineCap = 'round';
-  ctx.stroke();
-
-  // Titik harga terakhir di ujung kanan
-  ctx.beginPath();
-  ctx.arc(lastCoord.x, lastCoord.y, CONFIG.CHART_DOT_OUTER_RADIUS, 0, Math.PI * CONFIG.CHART_MID_DIVISOR);
-  ctx.fillStyle = CONFIG.CHART_DOT_BG_COLOR;
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(lastCoord.x, lastCoord.y, CONFIG.CHART_DOT_INNER_RADIUS, 0, Math.PI * CONFIG.CHART_MID_DIVISOR);
-  ctx.fillStyle = CONFIG.CHART_STROKE_COLOR;
-  ctx.fill();
-
-  // Label Y-axis (Maks & Min) + X-axis (HH:MM)
-  ctx.font = CONFIG.CHART_FONT;
-  ctx.fillStyle = CONFIG.CHART_LABEL_COLOR;
-
-  ctx.textAlign = 'left';
-  ctx.fillText('Maks ' + formatRupiahCompact(displayMax), plotLeft, CONFIG.CHART_LABEL_OFFSET_TOP_Y);
-  ctx.textAlign = 'right';
-  ctx.fillText('Min ' + formatRupiahCompact(displayMin), plotRight, CONFIG.CHART_LABEL_OFFSET_TOP_Y);
-
   const firstTs = points[0].ts;
   const midTs = points[Math.floor(points.length / CONFIG.CHART_MID_DIVISOR)].ts;
   const lastTs = points[points.length - 1].ts;
-  const xLabelY = plotBottom + CONFIG.CHART_X_LABEL_OFFSET_Y;
+  const latestPrice = targetPrices[targetPrices.length - 1];
 
-  ctx.textAlign = 'left';
-  ctx.fillText(formatTimeHHMM(firstTs), plotLeft, xLabelY);
-  ctx.textAlign = 'center';
-  ctx.fillText(formatTimeHHMM(midTs), plotLeft + plotW / CONFIG.CHART_MID_DIVISOR, xLabelY);
-  ctx.textAlign = 'right';
-  ctx.fillText(formatTimeHHMM(lastTs), plotRight, xLabelY);
+  const isSameAsset = chartAnimState.assetId === asset.id;
+  const hasNewTick =
+    isSameAsset &&
+    (lastTs !== chartAnimState.lastTs || latestPrice !== chartAnimState.lastPrice);
+  const isResized = isSameAsset && chartAnimState.lastWidth !== cssWidth;
+
+  // Jika tidak ada pembaruan harga (mis. user mengganti chip jumlah beli), jangan ganggu animasi aktif
+  if (isSameAsset && !hasNewTick && !isResized && chartAnimRafId !== null) {
+    return;
+  }
+
+  const prefersReducedMotion =
+    typeof root.matchMedia === 'function' &&
+    root.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const canAnimate =
+    hasDOM &&
+    typeof root.requestAnimationFrame === 'function' &&
+    !prefersReducedMotion;
+
+  function buildRestingCoords(priceValues, minScale, maxScale) {
+    const safeSpan = maxScale - minScale > 0 ? maxScale - minScale : 1;
+    return priceValues.map(function (val, idx) {
+      const x = plotLeft + (idx / (priceValues.length - 1)) * plotW;
+      const y = plotBottom - ((val - minScale) / safeSpan) * plotH;
+      return { x: x, y: y };
+    });
+  }
+
+  // Gambar statis jika reduced-motion aktif atau bukan DOM/animasi tidak diperlukan
+  if (!canAnimate || (isSameAsset && !hasNewTick)) {
+    cancelChartAnimation();
+    chartAnimState.assetId = asset.id;
+    chartAnimState.lastTs = lastTs;
+    chartAnimState.firstTs = firstTs;
+    chartAnimState.lastPrice = latestPrice;
+    chartAnimState.lastWidth = cssWidth;
+    chartAnimState.renderedPrices = targetPrices.slice();
+    chartAnimState.renderedMinPrice = targetBounds.scaleMin;
+    chartAnimState.renderedMaxPrice = targetBounds.scaleMax;
+    chartAnimState.targetPrices = targetPrices.slice();
+    chartAnimState.targetMinPrice = targetBounds.scaleMin;
+    chartAnimState.targetMaxPrice = targetBounds.scaleMax;
+    chartAnimState.direction = 'flat';
+
+    const steadyCoords = buildRestingCoords(
+      targetPrices,
+      targetBounds.scaleMin,
+      targetBounds.scaleMax
+    );
+    drawChartFrame(ctx, cssWidth, cssHeight, dpr, {
+      coords: steadyCoords,
+      dotCoord: steadyCoords[steadyCoords.length - 1],
+      displayMin: targetBounds.displayMin,
+      displayMax: targetBounds.displayMax,
+      firstTs: firstTs,
+      midTs: midTs,
+      lastTs: lastTs,
+      pulseProgress: null,
+      direction: 'flat'
+    });
+    return;
+  }
+
+  cancelChartAnimation();
+
+  // Mode A: Pembukaan awal aset — animasi slide-in, sapuan horizontal & kurva mengembang mulus
+  if (!isSameAsset) {
+    chartAnimState.assetId = asset.id;
+    chartAnimState.lastTs = lastTs;
+    chartAnimState.firstTs = firstTs;
+    chartAnimState.lastPrice = latestPrice;
+    chartAnimState.lastWidth = cssWidth;
+    chartAnimState.renderedPrices = targetPrices.slice();
+    chartAnimState.renderedMinPrice = targetBounds.scaleMin;
+    chartAnimState.renderedMaxPrice = targetBounds.scaleMax;
+    chartAnimState.targetPrices = targetPrices.slice();
+    chartAnimState.targetMinPrice = targetBounds.scaleMin;
+    chartAnimState.targetMaxPrice = targetBounds.scaleMax;
+    chartAnimState.direction = 'flat';
+
+    const revealCoords = buildRestingCoords(
+      targetPrices,
+      targetBounds.scaleMin,
+      targetBounds.scaleMax
+    );
+    const midY = (plotTop + plotBottom) / CONFIG.CHART_MID_DIVISOR;
+    const revealStart = root.performance && typeof root.performance.now === 'function'
+      ? root.performance.now()
+      : Date.now();
+    const totalRevealMs = CONFIG.CHART_REVEAL_DURATION_MS + CONFIG.CHART_PULSE_DURATION_MS;
+
+    const stepReveal = function (nowTs) {
+      if (state.selectedAssetId !== asset.id) {
+        chartAnimRafId = null;
+        return;
+      }
+      const nowVal = typeof nowTs === 'number' ? nowTs : Date.now();
+      const elapsed = Math.max(0, nowVal - revealStart);
+      const progress = Math.min(1, elapsed / CONFIG.CHART_REVEAL_DURATION_MS);
+      const ease = easeOutCubic(progress);
+      const clipX = plotLeft + ease * plotW;
+      const slideOffsetX = (1 - ease) * CONFIG.CHART_REVEAL_SLIDE_PX;
+
+      const frameCoords = revealCoords.map(function (pt) {
+        return {
+          x: pt.x + slideOffsetX,
+          y: midY + (pt.y - midY) * ease
+        };
+      });
+
+      const normIdx = ((clipX - plotLeft) / plotW) * (frameCoords.length - 1);
+      const idxLow = Math.max(0, Math.min(frameCoords.length - 1, Math.floor(normIdx)));
+      const idxHigh = Math.min(frameCoords.length - 1, idxLow + 1);
+      const frac = normIdx - idxLow;
+      const penX =
+        progress >= 1
+          ? frameCoords[frameCoords.length - 1].x
+          : Math.min(plotRight, clipX + slideOffsetX);
+      const penY =
+        frameCoords[idxLow].y + (frameCoords[idxHigh].y - frameCoords[idxLow].y) * frac;
+
+      let pulseProgress = null;
+      if (elapsed >= CONFIG.CHART_REVEAL_DURATION_MS) {
+        const pulseElapsed = elapsed - CONFIG.CHART_REVEAL_DURATION_MS;
+        pulseProgress = Math.min(1, pulseElapsed / CONFIG.CHART_PULSE_DURATION_MS);
+      }
+
+      drawChartFrame(ctx, cssWidth, cssHeight, dpr, {
+        coords: frameCoords,
+        dotCoord: { x: penX, y: penY },
+        clipRight: progress >= 1 ? plotRight : clipX,
+        fillAlpha: ease,
+        displayMin: targetBounds.displayMin,
+        displayMax: targetBounds.displayMax,
+        firstTs: firstTs,
+        midTs: midTs,
+        lastTs: lastTs,
+        pulseProgress: pulseProgress !== null && pulseProgress < 1 ? pulseProgress : null,
+        direction: 'flat'
+      });
+
+      if (elapsed < totalRevealMs) {
+        chartAnimRafId = root.requestAnimationFrame(stepReveal);
+      } else {
+        chartAnimRafId = null;
+      }
+    };
+
+    chartAnimRafId = root.requestAnimationFrame(stepReveal);
+    return;
+  }
+
+  // Mode B: Pembaruan tick real-time — kurva bergeser halus ke kiri + ujung kanan bertransisi & berdenyut
+  const prevPrices =
+    Array.isArray(chartAnimState.renderedPrices) && chartAnimState.renderedPrices.length > 1
+      ? chartAnimState.renderedPrices.slice()
+      : targetPrices.slice();
+  const prevMin = Number.isFinite(chartAnimState.renderedMinPrice)
+    ? chartAnimState.renderedMinPrice
+    : targetBounds.scaleMin;
+  const prevMax = Number.isFinite(chartAnimState.renderedMaxPrice)
+    ? chartAnimState.renderedMaxPrice
+    : targetBounds.scaleMax;
+  const prevLastPrice = Number.isFinite(chartAnimState.lastPrice)
+    ? chartAnimState.lastPrice
+    : prevPrices[prevPrices.length - 1];
+
+  let direction = 'flat';
+  if (latestPrice > prevLastPrice) {
+    direction = 'up';
+  } else if (latestPrice < prevLastPrice) {
+    direction = 'down';
+  }
+
+  const isWindowShifted =
+    firstTs > (chartAnimState.firstTs || 0) && prevPrices.length === targetPrices.length;
+
+  chartAnimState.lastTs = lastTs;
+  chartAnimState.firstTs = firstTs;
+  chartAnimState.lastPrice = latestPrice;
+  chartAnimState.lastWidth = cssWidth;
+  chartAnimState.targetPrices = targetPrices.slice();
+  chartAnimState.targetMinPrice = targetBounds.scaleMin;
+  chartAnimState.targetMaxPrice = targetBounds.scaleMax;
+  chartAnimState.direction = direction;
+
+  const animStart = root.performance && typeof root.performance.now === 'function'
+    ? root.performance.now()
+    : Date.now();
+  const stepX = plotW / (targetPrices.length - 1);
+
+  const stepTick = function (nowTs) {
+    if (state.selectedAssetId !== asset.id) {
+      chartAnimRafId = null;
+      return;
+    }
+    const nowVal = typeof nowTs === 'number' ? nowTs : Date.now();
+    const elapsed = Math.max(0, nowVal - animStart);
+    const morphProgress = Math.min(1, elapsed / CONFIG.CHART_ANIM_DURATION_MS);
+    const pulseProgress = Math.min(1, elapsed / CONFIG.CHART_PULSE_DURATION_MS);
+    const ease = easeOutCubic(morphProgress);
+
+    const curMin = prevMin + (targetBounds.scaleMin - prevMin) * ease;
+    const curMax = prevMax + (targetBounds.scaleMax - prevMax) * ease;
+    const curSpan = curMax - curMin > 0 ? curMax - curMin : 1;
+
+    let frameCoords;
+    const currentSnapshotPrices = new Array(targetPrices.length);
+
+    if (isWindowShifted) {
+      frameCoords = new Array(prevPrices.length + 1);
+      for (let i = 0; i < prevPrices.length; i += 1) {
+        const x = plotLeft + (i - ease) * stepX;
+        const y = plotBottom - ((prevPrices[i] - curMin) / curSpan) * plotH;
+        frameCoords[i] = { x: x, y: y };
+      }
+      const tipPrice = prevLastPrice + (latestPrice - prevLastPrice) * ease;
+      const tipY = plotBottom - ((tipPrice - curMin) / curSpan) * plotH;
+      frameCoords[prevPrices.length] = { x: plotRight, y: tipY };
+
+      for (let j = 0; j < targetPrices.length - 1; j += 1) {
+        currentSnapshotPrices[j] =
+          prevPrices[j] + (targetPrices[j] - prevPrices[j]) * ease;
+      }
+      currentSnapshotPrices[targetPrices.length - 1] = tipPrice;
+    } else {
+      frameCoords = new Array(targetPrices.length);
+      for (let i = 0; i < targetPrices.length; i += 1) {
+        const fromVal = prevPrices[Math.min(i, prevPrices.length - 1)];
+        const interpVal = fromVal + (targetPrices[i] - fromVal) * ease;
+        currentSnapshotPrices[i] = interpVal;
+        const x = plotLeft + (i / (targetPrices.length - 1)) * plotW;
+        const y = plotBottom - ((interpVal - curMin) / curSpan) * plotH;
+        frameCoords[i] = { x: x, y: y };
+      }
+    }
+
+    chartAnimState.renderedPrices = currentSnapshotPrices;
+    chartAnimState.renderedMinPrice = curMin;
+    chartAnimState.renderedMaxPrice = curMax;
+
+    const dotCoord = frameCoords[frameCoords.length - 1];
+    drawChartFrame(ctx, cssWidth, cssHeight, dpr, {
+      coords: frameCoords,
+      dotCoord: dotCoord,
+      displayMin: targetBounds.displayMin,
+      displayMax: targetBounds.displayMax,
+      firstTs: firstTs,
+      midTs: midTs,
+      lastTs: lastTs,
+      pulseProgress: pulseProgress < 1 ? pulseProgress : null,
+      direction: direction
+    });
+
+    if (morphProgress < 1 || pulseProgress < 1) {
+      chartAnimRafId = root.requestAnimationFrame(stepTick);
+    } else {
+      chartAnimState.renderedPrices = targetPrices.slice();
+      chartAnimState.renderedMinPrice = targetBounds.scaleMin;
+      chartAnimState.renderedMaxPrice = targetBounds.scaleMax;
+      chartAnimRafId = null;
+    }
+  };
+
+  chartAnimRafId = root.requestAnimationFrame(stepTick);
 }
 /**
  * Merender informasi layar detail aset yang dipilih beserta grafik Canvas 2D.
@@ -943,6 +1587,19 @@ export function renderAssetDetailScreen() {
     detailWalletBalance.title = formatRupiahFull(state.balance);
   }
   if (detailMarketPriceHero) {
+    const prevAssetId = detailMarketPriceHero.dataset.assetId;
+    const prevHeroPrice = Number(detailMarketPriceHero.dataset.lastPrice);
+    if (prevAssetId === asset.id && Number.isFinite(prevHeroPrice) && prevHeroPrice !== currentPrice) {
+      detailMarketPriceHero.classList.remove('detail-price-flash--up', 'detail-price-flash--down');
+      void detailMarketPriceHero.offsetWidth;
+      detailMarketPriceHero.classList.add(
+        currentPrice > prevHeroPrice ? 'detail-price-flash--up' : 'detail-price-flash--down'
+      );
+    } else if (prevAssetId !== asset.id) {
+      detailMarketPriceHero.classList.remove('detail-price-flash--up', 'detail-price-flash--down');
+    }
+    detailMarketPriceHero.dataset.assetId = asset.id;
+    detailMarketPriceHero.dataset.lastPrice = String(currentPrice);
     detailMarketPriceHero.textContent = formatRupiahCompact(currentPrice);
     detailMarketPriceHero.title = formatRupiahFull(currentPrice);
   }
@@ -1081,7 +1738,7 @@ export function buyAsset(assetId, requestedQty) {
     avgEntry: newAvg
   };
 
-  saveState();
+  saveState({ syncImmediately: true });
   renderStats();
   renderUpgrades();
   renderInvestingScreen();
@@ -1145,7 +1802,7 @@ export function sellAsset(assetId, requestedQty) {
     };
   }
 
-  saveState();
+  saveState({ syncImmediately: true });
   renderStats();
   renderUpgrades();
   renderInvestingScreen();
@@ -1225,6 +1882,8 @@ export function closeOwnedScreen() {
 }
 
 export function resetInvestingNavigation() {
+  cancelChartAnimation();
+  chartAnimState.assetId = null;
   activeCategoryScreen = null;
   isOwnedScreenOpen = false;
   if (investingOwnedScreen) {
@@ -1242,6 +1901,8 @@ export function resetInvestingNavigation() {
 export function openAssetDetail(assetId) {
   const asset = getAssetById(assetId);
   if (!asset || !assetDetailScreen || !investingScreen) return;
+  cancelChartAnimation();
+  chartAnimState.assetId = null;
   state.selectedAssetId = asset.id;
   state.selectedQtyMode = CONFIG.DEFAULT_TRADE_QTY;
   investingScreen.hidden = true;
@@ -1256,6 +1917,13 @@ export function openAssetDetail(assetId) {
   }
   assetDetailScreen.hidden = false;
   assetDetailScreen.classList.add('screen--active');
+  assetDetailScreen.classList.remove('is-entering');
+  void assetDetailScreen.offsetWidth;
+  assetDetailScreen.classList.add('is-entering');
+  const detailBodyEl = getEl('detail-body');
+  if (detailBodyEl) {
+    detailBodyEl.scrollTop = 0;
+  }
   renderAssetDetailScreen();
 }
 
@@ -1263,10 +1931,12 @@ export function openAssetDetail(assetId) {
  * Menutup layar detail aset dan kembali ke daftar dimiliki, kategori, atau dasbor investasi.
  */
 export function closeAssetDetail() {
+  cancelChartAnimation();
+  chartAnimState.assetId = null;
   state.selectedAssetId = null;
   if (assetDetailScreen) {
     assetDetailScreen.hidden = true;
-    assetDetailScreen.classList.remove('screen--active');
+    assetDetailScreen.classList.remove('screen--active', 'is-entering');
   }
   if (state.activeTab === 'Investing') {
     if (isOwnedScreenOpen && activeCategoryScreen && investingOwnedScreen) {
@@ -1290,6 +1960,73 @@ export function closeAssetDetail() {
  */
 export function bindInvestingEvents() {
   if (!hasDOM) return;
+
+  legendItems.forEach(function (btn) {
+    const cat = btn.getAttribute('data-legend-category');
+    if (!cat) return;
+
+    btn.addEventListener('click', function () {
+      toggleLegendCategory(cat);
+    });
+    btn.addEventListener('mouseenter', function () {
+      hoveredLegendCategory = cat;
+      syncDonutHighlightUI();
+    });
+    btn.addEventListener('mouseleave', function () {
+      if (hoveredLegendCategory === cat) {
+        hoveredLegendCategory = null;
+        syncDonutHighlightUI();
+      }
+    });
+    btn.addEventListener('focus', function () {
+      hoveredLegendCategory = cat;
+      syncDonutHighlightUI();
+    });
+    btn.addEventListener('blur', function () {
+      if (hoveredLegendCategory === cat) {
+        hoveredLegendCategory = null;
+        syncDonutHighlightUI();
+      }
+    });
+  });
+
+  if (donutSegmentsGroup) {
+    donutSegmentsGroup.addEventListener('click', function (event) {
+      const seg = event.target.closest('[data-donut-category]');
+      if (!seg) return;
+      toggleLegendCategory(seg.getAttribute('data-donut-category'));
+    });
+    donutSegmentsGroup.addEventListener('keydown', function (event) {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      const seg = event.target.closest('[data-donut-category]');
+      if (!seg) return;
+      event.preventDefault();
+      toggleLegendCategory(seg.getAttribute('data-donut-category'));
+    });
+    donutSegmentsGroup.addEventListener('mouseover', function (event) {
+      const seg = event.target.closest('[data-donut-category]');
+      if (!seg) return;
+      const cat = seg.getAttribute('data-donut-category');
+      if (cat && hoveredLegendCategory !== cat) {
+        hoveredLegendCategory = cat;
+        syncDonutHighlightUI();
+      }
+    });
+    donutSegmentsGroup.addEventListener('mouseleave', function () {
+      if (hoveredLegendCategory) {
+        hoveredLegendCategory = null;
+        syncDonutHighlightUI();
+      }
+    });
+  }
+
+  if (allocDonutCenter) {
+    allocDonutCenter.addEventListener('click', function () {
+      activeLegendCategory = null;
+      hoveredLegendCategory = null;
+      syncDonutHighlightUI();
+    });
+  }
 
   categoryCards.forEach(function (card) {
     card.addEventListener('click', function () {

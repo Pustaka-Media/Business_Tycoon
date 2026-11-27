@@ -234,7 +234,7 @@ export function buyUpgrade(upgradeId) {
   state.upgrades[tier.id] = currentLevel + 1;
   state.perClick = recalculatePerClick();
   state.perSecond = recalculatePerSecond();
-  writeSaveImmediate();
+  writeSaveImmediate({ syncImmediately: true });
   renderStats();
   renderUpgrades();
   announceScreenReader(

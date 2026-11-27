@@ -112,11 +112,11 @@ test('Executive Black-Gold Precious Card: struktur SVG, branding fiktif, dan beb
   assert.ok(css.includes('.bank-card__balance--ultra-compact'));
 });
 
-test('INV-02 & INV-03: 75 aset investasi valid, 60 titik riwayat awal, dan tick harga finite', function () {
+test('INV-02 & INV-03: 138 aset investasi valid, 60 titik riwayat awal, dan tick harga finite', function () {
   mockStorage.clear();
   game.resetAllData();
 
-  assert.equal(game.ASSETS.length, 75);
+  assert.equal(game.ASSETS.length, 138);
   const byCategory = { Saham: 0, Properti: 0, Kripto: 0, Forex: 0 };
   game.ASSETS.forEach(function (asset) {
     byCategory[asset.category] += 1;
@@ -128,7 +128,7 @@ test('INV-02 & INV-03: 75 aset investasi valid, 60 titik riwayat awal, dan tick 
     });
   });
 
-  assert.deepEqual(byCategory, { Saham: 19, Properti: 4, Kripto: 34, Forex: 18 });
+  assert.deepEqual(byCategory, { Saham: 56, Properti: 4, Kripto: 52, Forex: 26 });
 
   // Jalankan beberapa tick harga 3 detik dan pastikan semua tetap finite dan dibatasi 60 titik
   for (let i = 0; i < 5; i += 1) {
@@ -279,10 +279,12 @@ test('buyUpgrade mengurangi saldo, menaikkan perClick/perSecond, dan calculateOf
   assert.equal(fiveHours.bonus, 36000);
 });
 
-test('Firebase payload builders mematuhi batas skema firebase-blueprint.json dan firestore.rules', function () {
+test('Firebase payload builders & cloud portfolio restore mematuhi skema firebase-blueprint.json dan firestore.rules', function () {
   assert.equal(game.isValidFirebaseUserId('user_123-ABC'), true);
   assert.equal(game.isValidFirebaseUserId('bad/uid'), false);
   assert.equal(game.isValidFirebaseUserId(''), false);
+  assert.equal(game.isValidAssetId('saham_apple'), true);
+  assert.equal(game.isValidAssetId('bad/asset'), false);
 
   const stamp = { _type: 'serverTimestamp' };
   const profilePayload = game.buildUserPrivatePayload(
@@ -305,17 +307,27 @@ test('Firebase payload builders mematuhi batas skema firebase-blueprint.json dan
       perClick: 12.345,
       perSecond: 4.5,
       totalTaps: 99.8,
-      totalEarned: 2500.567
+      totalEarned: 2500.567,
+      upgrades: { gloves: 3, tap_machine: 1, auto_team: 0 },
+      milestones: ['taps_100', 'taps_100', 'earned_100'],
+      settings: { sound: false, haptic: true },
+      startDate: 1700000000000,
+      clientSavedAt: 1700000500000
     },
     stamp
   );
   assert.deepEqual(Object.keys(savePayload).sort(), [
     'balance',
+    'clientSavedAt',
+    'milestones',
     'perClick',
     'perSecond',
+    'settings',
+    'startDate',
     'totalEarned',
     'totalTaps',
     'updatedAt',
+    'upgrades',
     'userId',
     'version'
   ]);
@@ -324,4 +336,57 @@ test('Firebase payload builders mematuhi batas skema firebase-blueprint.json dan
   assert.equal(savePayload.perClick, 12.35);
   assert.equal(savePayload.totalTaps, 99);
   assert.equal(savePayload.totalEarned, 2500.57);
+  assert.deepEqual(savePayload.upgrades, { gloves: 3, tap_machine: 1, auto_team: 0 });
+  assert.deepEqual(savePayload.milestones, ['taps_100', 'earned_100']);
+  assert.deepEqual(savePayload.settings, { sound: false, haptic: true });
+  assert.equal(savePayload.clientSavedAt, 1700000500000);
+
+  const holdingPayload = game.buildPortfolioHoldingPayload(
+    'abc_123',
+    'saham_apple',
+    { units: 5.7, avgEntry: 192.345 },
+    stamp
+  );
+  assert.deepEqual(Object.keys(holdingPayload).sort(), [
+    'assetId',
+    'avgEntry',
+    'units',
+    'updatedAt',
+    'userId'
+  ]);
+  assert.equal(holdingPayload.units, 5);
+  assert.equal(holdingPayload.avgEntry, 192.35);
+  assert.equal(
+    game.buildPortfolioHoldingPayload('abc_123', 'saham_apple', { units: 0, avgEntry: 10 }, stamp),
+    null
+  );
+
+  // Simulasikan login di perangkat baru: data portofolio & upgrade dari Firestore harus pulih penuh
+  mockStorage.clear();
+  game.resetAllData();
+  const cloudSnapshot = {
+    version: 2,
+    balance: 125000,
+    totalTaps: 420,
+    totalEarned: 980000,
+    upgrades: { gloves: 2, tap_machine: 1, auto_team: 1 },
+    milestones: ['taps_100', 'earned_1000'],
+    settings: { sound: false, haptic: true },
+    startDate: 1700000000000,
+    clientSavedAt: Date.now() + 5000,
+    holdings: {
+      saham_apple: { units: 4, avgEntry: 185.5 },
+      kripto_bitcoin: { units: 2, avgEntry: 61200.25 }
+    }
+  };
+  assert.equal(game.shouldRestoreCloudSave(cloudSnapshot), true);
+  assert.equal(game.applyCloudSave(cloudSnapshot), true);
+  assert.equal(game.state.balance, 125000);
+  assert.equal(game.state.upgrades.gloves, 2);
+  assert.equal(game.state.perClick, 33);
+  assert.equal(game.state.perSecond, 10);
+  assert.deepEqual(game.state.holdings.saham_apple, { units: 4, avgEntry: 185.5 });
+  assert.deepEqual(game.state.holdings.kripto_bitcoin, { units: 2, avgEntry: 61200.25 });
+  assert.equal(game.state.milestones.taps_100, true);
+  assert.equal(game.state.settings.sound, false);
 });

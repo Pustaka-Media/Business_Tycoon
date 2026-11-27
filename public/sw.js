@@ -2,7 +2,7 @@
    BUSINESS TYCOON TAP - SERVICE WORKER (OFFLINE CACHE-FIRST)
    ========================================================================== */
 
-const CACHE_NAME = 'business-tycoon-tap-v49';
+const CACHE_NAME = 'business-tycoon-tap-v67';
 const CORE_ASSETS = [
   './',
   './index.html',

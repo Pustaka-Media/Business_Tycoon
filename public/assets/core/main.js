@@ -19,6 +19,7 @@ import {
 } from './state.js';
 import { initFirebase, syncPlayerSaveToCloud } from './firebase.js';
 import { setTabBadge } from '../components/badges.js';
+import { showToast } from '../components/feedback.js';
 import { checkMilestones } from '../components/milestones.js';
 import { hideModulePreview, renderModulePreview, bindPreviewEvents } from '../components/preview.js';
 import {
@@ -396,6 +397,143 @@ function registerServiceWorker() {
   }
 }
 
+function isFreshLocalProgress() {
+  let upgradeCount = 0;
+  CONFIG.UPGRADE_TIERS.forEach(function (tier) {
+    upgradeCount += Number(state.upgrades[tier.id]) || 0;
+  });
+  let milestoneCount = 0;
+  CONFIG.MILESTONES.forEach(function (m) {
+    if (state.milestones && state.milestones[m.id]) milestoneCount += 1;
+  });
+  return (
+    state.balance === 0 &&
+    state.totalTaps === 0 &&
+    state.totalEarned === 0 &&
+    upgradeCount === 0 &&
+    milestoneCount === 0 &&
+    Object.keys(state.holdings || {}).length === 0
+  );
+}
+
+/**
+ * Menentukan apakah data awan lebih baru atau lebih lengkap dibanding simpanan lokal.
+ */
+export function shouldRestoreCloudSave(cloudSave) {
+  if (!cloudSave || typeof cloudSave !== 'object') return false;
+  if (isFreshLocalProgress()) return true;
+
+  const cloudClientAt = Number(cloudSave.clientSavedAt);
+  const localSeenAt = Number(state.lastSeen) || 0;
+  if (Number.isFinite(cloudClientAt) && cloudClientAt > 0 && cloudClientAt > localSeenAt) {
+    return true;
+  }
+
+  const cloudEarned = Number(cloudSave.totalEarned) || 0;
+  const cloudHoldingsCount =
+    cloudSave.holdings && typeof cloudSave.holdings === 'object'
+      ? Object.keys(cloudSave.holdings).length
+      : 0;
+  const localHoldingsCount = Object.keys(state.holdings || {}).length;
+
+  if (cloudEarned > state.totalEarned) {
+    return true;
+  }
+  if (cloudHoldingsCount > 0 && localHoldingsCount === 0 && cloudEarned >= state.totalEarned) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Menerapkan data progres & portofolio dari Firestore ke state lokal tanpa memicu loop tulis balik.
+ */
+export function applyCloudSave(cloudSave) {
+  if (!cloudSave || typeof cloudSave !== 'object') return false;
+
+  const cloudBalance = Number(cloudSave.balance);
+  const cloudEarned = Number(cloudSave.totalEarned);
+  const cloudTaps = Number(cloudSave.totalTaps);
+  const cloudClick = Number(cloudSave.perClick);
+  const cloudSecond = Number(cloudSave.perSecond);
+  const cloudStart = Number(cloudSave.startDate);
+  const cloudSeen = Number(cloudSave.clientSavedAt);
+
+  if (Number.isFinite(cloudBalance) && cloudBalance >= 0) {
+    state.balance = Math.round(cloudBalance * 100) / 100;
+  }
+
+  if (cloudSave.upgrades && typeof cloudSave.upgrades === 'object') {
+    CONFIG.UPGRADE_TIERS.forEach(function (tier) {
+      const lvl = Number(cloudSave.upgrades[tier.id]);
+      state.upgrades[tier.id] = Number.isFinite(lvl) && lvl >= 0 ? Math.floor(lvl) : 0;
+    });
+    state.perClick = recalculatePerClick();
+    state.perSecond = recalculatePerSecond();
+  } else {
+    if (Number.isFinite(cloudClick) && cloudClick >= CONFIG.BASE_PER_CLICK) {
+      state.perClick = Math.round(cloudClick * 100) / 100;
+    }
+    if (Number.isFinite(cloudSecond) && cloudSecond >= 0) {
+      state.perSecond = Math.round(cloudSecond * 100) / 100;
+    }
+  }
+
+  if (Number.isFinite(cloudTaps) && cloudTaps >= 0) {
+    state.totalTaps = Math.floor(cloudTaps);
+  }
+  if (Number.isFinite(cloudEarned) && cloudEarned >= 0) {
+    state.totalEarned = Math.round(cloudEarned * 100) / 100;
+  }
+
+  if (Array.isArray(cloudSave.milestones)) {
+    state.milestones = {};
+    CONFIG.MILESTONES.forEach(function (m) {
+      if (cloudSave.milestones.indexOf(m.id) >= 0) {
+        state.milestones[m.id] = true;
+      }
+    });
+  }
+
+  if (cloudSave.settings && typeof cloudSave.settings === 'object') {
+    state.settings.sound = cloudSave.settings.sound !== false;
+    state.settings.haptic = cloudSave.settings.haptic !== false;
+  }
+
+  if (Number.isFinite(cloudStart) && cloudStart > 0) {
+    state.startDate = Math.floor(cloudStart);
+  }
+  if (Number.isFinite(cloudSeen) && cloudSeen > 0) {
+    state.lastSeen = Math.max(Date.now(), Math.floor(cloudSeen));
+  }
+
+  if (cloudSave.holdings && typeof cloudSave.holdings === 'object') {
+    state.holdings = {};
+    ASSETS.forEach(function (asset) {
+      const entry = cloudSave.holdings[asset.id];
+      if (!entry || typeof entry !== 'object') return;
+      const units = Number(entry.units);
+      const avg = Number(entry.avgEntry);
+      if (Number.isFinite(units) && Math.floor(units) >= 1 && Number.isFinite(avg) && avg >= 0) {
+        state.holdings[asset.id] = {
+          units: Math.floor(units),
+          avgEntry: Math.round(avg * 100) / 100
+        };
+      }
+    });
+  }
+
+  writeSaveImmediate({ skipCloudSync: true, preserveLastSeen: true });
+  renderStats();
+  renderUpgrades();
+  renderProfileStats();
+  renderInvestingScreen();
+  if (state.selectedAssetId) {
+    renderAssetDetailScreen();
+  }
+  return true;
+}
+
 // Inisialisasi aplikasi saat berada di lingkungan DOM peramban
 function init() {
   setTabBadge('Earnings', 0);
@@ -417,39 +555,23 @@ function init() {
   startPassiveIncomeLoop();
   startMarketPriceLoop();
   registerServiceWorker();
-  initFirebase(function (cloudSave) {
-    if (cloudSave && typeof cloudSave === 'object') {
-      const cloudEarned = Number(cloudSave.totalEarned);
-      const cloudBalance = Number(cloudSave.balance);
-      const cloudTaps = Number(cloudSave.totalTaps);
-      const cloudClick = Number(cloudSave.perClick);
-      const cloudSecond = Number(cloudSave.perSecond);
-      if (Number.isFinite(cloudEarned) && cloudEarned > state.totalEarned) {
-        if (Number.isFinite(cloudBalance) && cloudBalance >= 0) {
-          state.balance = Math.round(cloudBalance * 100) / 100;
-        }
-        if (Number.isFinite(cloudClick) && cloudClick >= CONFIG.BASE_PER_CLICK) {
-          state.perClick = Math.round(cloudClick * 100) / 100;
-        }
-        if (Number.isFinite(cloudSecond) && cloudSecond >= 0) {
-          state.perSecond = Math.round(cloudSecond * 100) / 100;
-        }
-        if (Number.isFinite(cloudTaps) && cloudTaps >= 0) {
-          state.totalTaps = Math.floor(cloudTaps);
-        }
-        state.totalEarned = Math.round(cloudEarned * 100) / 100;
-        writeSaveImmediate();
-        renderStats();
-        renderUpgrades();
-        renderProfileStats();
-        renderInvestingScreen();
+  initFirebase(
+    function (cloudSave) {
+      if (cloudSave && shouldRestoreCloudSave(cloudSave)) {
+        applyCloudSave(cloudSave);
+        showToast('Sinkronisasi Awan', 'Portofolio dan progres dipulihkan dari awan.');
         return;
       }
+      syncPlayerSaveToCloud(getCloudSaveSnapshot()).catch(function () {
+        // Abaikan jika sinkronisasi awal tertunda
+      });
+    },
+    function (realtimeSave) {
+      if (realtimeSave && applyCloudSave(realtimeSave)) {
+        showToast('Sinkronisasi Awan', 'Portofolio diperbarui dari perangkat lain.');
+      }
     }
-    syncPlayerSaveToCloud(getCloudSaveSnapshot()).catch(function () {
-      // Abaikan jika sinkronisasi awal tertunda
-    });
-  });
+  );
 }
 
 if (hasDOM) {
